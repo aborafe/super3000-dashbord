@@ -16,6 +16,22 @@ All routes are prefixed with `/api/v1` and return JSON in the following shape:
 }
 ```
 
+### Errors (validation)
+
+Validation errors return the same envelope:
+
+```json
+{
+    "data": null,
+    "meta": {
+        "message": "Validation error.",
+        "errors": {
+            "email": ["The email field is required."]
+        }
+    }
+}
+```
+
 Authentication uses **Laravel Sanctum** personal access tokens. Send the token as a Bearer token:
 
 ```http

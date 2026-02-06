@@ -22,7 +22,7 @@ class StoreProductRequest extends FormRequest
             'stock' => ['required', 'integer', 'min:0'],
             'status' => ['required', 'in:active,inactive'],
             'category_id' => ['required', 'exists:categories,id'],
-            'image' => ['nullable', 'string', 'max:255'],
+            'image' => ['nullable', 'image', 'max:2048'],
         ];
     }
 }

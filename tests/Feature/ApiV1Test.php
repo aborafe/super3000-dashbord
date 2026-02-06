@@ -40,4 +40,21 @@ class ApiV1Test extends TestCase
             ],
         ]);
     }
+
+    public function test_api_returns_validation_envelope(): void
+    {
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => 'invalid',
+            'password' => '',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonStructure([
+            'data',
+            'meta' => [
+                'message',
+                'errors',
+            ],
+        ]);
+    }
 }

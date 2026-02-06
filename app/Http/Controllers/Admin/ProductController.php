@@ -10,6 +10,7 @@ use App\Models\Product;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
@@ -36,8 +37,24 @@ class ProductController extends Controller
             $query->where('status', $status);
         }
 
+        $sort = $request->string('sort')->toString() ?: 'created_at';
+        $direction = $request->string('direction')->toString() ?: 'desc';
+        $allowedSorts = ['name', 'price', 'stock', 'created_at'];
+
+        if (! in_array($sort, $allowedSorts, true)) {
+            $sort = 'created_at';
+        }
+
+        if (! in_array($direction, ['asc', 'desc'], true)) {
+            $direction = 'desc';
+        }
+
+        $sortColumn = $sort === 'name'
+            ? (app()->getLocale() === 'ar' ? 'name_ar' : 'name_en')
+            : $sort;
+
         $products = $query
-            ->orderByDesc('id')
+            ->orderBy($sortColumn, $direction)
             ->paginate(15)
             ->withQueryString();
 
@@ -48,7 +65,7 @@ class ProductController extends Controller
         return view('admin.products.index', [
             'products' => $products,
             'categories' => $categories,
-            'filters' => $request->only(['q', 'category_id', 'status']),
+            'filters' => $request->only(['q', 'category_id', 'status', 'sort', 'direction']),
         ]);
     }
 
@@ -72,6 +89,12 @@ class ProductController extends Controller
     public function store(StoreProductRequest $request): RedirectResponse
     {
         $data = $request->validated();
+
+        $data = $this->ensureLocalizedNames($data);
+
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image')->store('products', 'public');
+        }
 
         Product::query()->create($data);
 
@@ -102,6 +125,16 @@ class ProductController extends Controller
     {
         $data = $request->validated();
 
+        $data = $this->ensureLocalizedNames($data);
+
+        if ($request->hasFile('image')) {
+            if ($product->image) {
+                Storage::disk('public')->delete($product->image);
+            }
+
+            $data['image'] = $request->file('image')->store('products', 'public');
+        }
+
         $product->update($data);
 
         return redirect()
@@ -114,10 +147,34 @@ class ProductController extends Controller
      */
     public function destroy(Product $product): RedirectResponse
     {
+        if ($product->image) {
+            Storage::disk('public')->delete($product->image);
+        }
+
         $product->delete();
 
         return redirect()
             ->route('admin.products.index')
             ->with('status', __('Product deleted successfully.'));
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    protected function ensureLocalizedNames(array $data): array
+    {
+        $nameAr = $data['name_ar'] ?? null;
+        $nameEn = $data['name_en'] ?? null;
+
+        if (empty($nameAr) && ! empty($nameEn)) {
+            $data['name_ar'] = $nameEn;
+        }
+
+        if (empty($nameEn) && ! empty($nameAr)) {
+            $data['name_en'] = $nameAr;
+        }
+
+        return $data;
     }
 }

@@ -1,167 +1,186 @@
-@extends('layouts.app')
+@extends('layouts.admin')
+
+@section('title', __('Products'))
 
 @section('content')
-    @php
-        $title = __('Products');
-    @endphp
+    @include('admin.components.flash')
 
-    <div class="flex items-center justify-between mb-4">
-        <h1 class="text-xl font-semibold">
-            {{ __('Products') }}
-        </h1>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h4 class="mb-1">{{ __('Products') }}</h4>
+            <p class="text-muted mb-0">{{ __('Manage your product catalog.') }}</p>
+        </div>
 
         @can('products.create')
-            <a href="{{ route('admin.products.create') }}"
-                class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium border border-slate-300 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600">
-                {{ __('Add product') }}
+            <a href="{{ route('admin.products.create') }}" class="btn btn-primary">
+                <i class="bx bx-plus me-1"></i>{{ __('Add product') }}
             </a>
         @endcan
     </div>
 
-    @if (session('status'))
-        <div
-            class="mb-4 rounded-md border border-emerald-500/60 bg-emerald-50 px-4 py-2 text-sm text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-100">
-            {{ session('status') }}
+    <div class="card mb-4">
+        <h5 class="card-header">{{ __('Filters') }}</h5>
+        <div class="card-body">
+            <form method="GET" action="{{ route('admin.products.index') }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">{{ __('Search') }}</label>
+                        <input type="text" name="q" value="{{ $filters['q'] ?? '' }}"
+                            class="form-control" placeholder="{{ __('Name or SKU') }}">
+                    </div>
+
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">{{ __('Category') }}</label>
+                        <select name="category_id" class="form-select">
+                            <option value="">{{ __('All categories') }}</option>
+                            @foreach ($categories as $category)
+                                <option value="{{ $category->id }}" @selected(($filters['category_id'] ?? null) == $category->id)>
+                                    {{ app()->getLocale() === 'ar' ? $category->name_ar : $category->name_en }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-md-2">
+                        <label class="form-label">{{ __('Status') }}</label>
+                        <select name="status" class="form-select">
+                            <option value="">{{ __('All') }}</option>
+                            <option value="active" @selected(($filters['status'] ?? null) === 'active')>
+                                {{ __('Active') }}
+                            </option>
+                            <option value="inactive" @selected(($filters['status'] ?? null) === 'inactive')>
+                                {{ __('Inactive') }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">{{ __('Sort by') }}</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <select name="sort" class="form-select">
+                                    <option value="created_at" @selected(($filters['sort'] ?? null) === 'created_at')>
+                                        {{ __('Created') }}
+                                    </option>
+                                    <option value="name" @selected(($filters['sort'] ?? null) === 'name')>
+                                        {{ __('Name') }}
+                                    </option>
+                                    <option value="price" @selected(($filters['sort'] ?? null) === 'price')>
+                                        {{ __('Price') }}
+                                    </option>
+                                    <option value="stock" @selected(($filters['sort'] ?? null) === 'stock')>
+                                        {{ __('Stock') }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <select name="direction" class="form-select">
+                                    <option value="desc" @selected(($filters['direction'] ?? null) === 'desc')>
+                                        {{ __('Desc') }}
+                                    </option>
+                                    <option value="asc" @selected(($filters['direction'] ?? null) === 'asc')>
+                                        {{ __('Asc') }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-1 d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bx bx-filter me-1"></i>{{ __('Filter') }}
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
-    @endif
-
-    <div class="mb-4 rounded-md border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-        <form method="GET" action="{{ route('admin.products.index') }}" class="grid gap-3 md:grid-cols-4">
-            <div>
-                <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
-                    {{ __('Search') }}
-                </label>
-                <input type="text" name="q" value="{{ $filters['q'] ?? '' }}"
-                    class="block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-sky-500 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-800"
-                    placeholder="{{ __('Name or SKU') }}">
-            </div>
-
-            <div>
-                <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
-                    {{ __('Category') }}
-                </label>
-                <select name="category_id"
-                    class="block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-sky-500 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-800">
-                    <option value="">{{ __('All categories') }}</option>
-                    @foreach ($categories as $category)
-                        <option value="{{ $category->id }}" @selected(($filters['category_id'] ?? null) == $category->id)>
-                            {{ app()->getLocale() === 'ar' ? $category->name_ar : $category->name_en }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
-                    {{ __('Status') }}
-                </label>
-                <select name="status"
-                    class="block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-sky-500 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-800">
-                    <option value="">{{ __('All') }}</option>
-                    <option value="active" @selected(($filters['status'] ?? null) === 'active')>
-                        {{ __('Active') }}
-                    </option>
-                    <option value="inactive" @selected(($filters['status'] ?? null) === 'inactive')>
-                        {{ __('Inactive') }}
-                    </option>
-                </select>
-            </div>
-
-            <div class="flex items-end">
-                <button type="submit"
-                    class="inline-flex w-full justify-center items-center px-3 py-2 rounded-md text-sm font-medium border border-slate-300 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600">
-                    {{ __('Filter') }}
-                </button>
-            </div>
-        </form>
     </div>
 
-    <div class="overflow-x-auto rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-        <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
-            <thead class="bg-slate-50 dark:bg-slate-800">
-                <tr>
-                    <th class="px-3 py-2 text-start font-medium text-slate-600 dark:text-slate-200">{{ __('SKU') }}
-                    </th>
-                    <th class="px-3 py-2 text-start font-medium text-slate-600 dark:text-slate-200">{{ __('Name') }}
-                    </th>
-                    <th class="px-3 py-2 text-start font-medium text-slate-600 dark:text-slate-200">{{ __('Category') }}
-                    </th>
-                    <th class="px-3 py-2 text-start font-medium text-slate-600 dark:text-slate-200">{{ __('Price') }}
-                    </th>
-                    <th class="px-3 py-2 text-start font-medium text-slate-600 dark:text-slate-200">{{ __('Stock') }}
-                    </th>
-                    <th class="px-3 py-2 text-start font-medium text-slate-600 dark:text-slate-200">{{ __('Status') }}
-                    </th>
-                    <th class="px-3 py-2 text-end font-medium text-slate-600 dark:text-slate-200">{{ __('Actions') }}</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                @forelse ($products as $product)
+    <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h5 class="mb-0">{{ __('Products') }}</h5>
+            <span class="text-muted small">{{ __('Total: :count', ['count' => $products->total()]) }}</span>
+        </div>
+        <div class="table-responsive text-nowrap">
+            <table class="table">
+                <thead class="table-light">
                     <tr>
-                        <td class="px-3 py-2 whitespace-nowrap text-xs font-mono text-slate-700 dark:text-slate-200">
-                            {{ $product->sku }}
-                        </td>
-                        <td class="px-3 py-2 whitespace-nowrap">
-                            {{ $product->name }}
-                        </td>
-                        <td class="px-3 py-2 whitespace-nowrap text-slate-600 dark:text-slate-300">
-                            {{ $product->category?->name ?? '—' }}
-                        </td>
-                        <td class="px-3 py-2 whitespace-nowrap">
-                            {{ number_format($product->price, 2) }}
-                        </td>
-                        <td class="px-3 py-2 whitespace-nowrap">
-                            {{ $product->stock }}
-                        </td>
-                        <td class="px-3 py-2 whitespace-nowrap">
-                            @if ($product->status === 'active')
-                                <span
-                                    class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-100">
-                                    {{ __('Active') }}
-                                </span>
-                            @else
-                                <span
-                                    class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                                    {{ __('Inactive') }}
-                                </span>
-                            @endif
-                        </td>
-                        <td class="px-3 py-2 whitespace-nowrap text-end">
-                            <div class="inline-flex items-center gap-1">
-                                @can('products.update')
-                                    <a href="{{ route('admin.products.edit', $product) }}"
-                                        class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border border-slate-300 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600">
-                                        {{ __('Edit') }}
-                                    </a>
-                                @endcan
-
-                                @can('products.delete')
-                                    <form method="POST" action="{{ route('admin.products.destroy', $product) }}"
-                                        onsubmit="return confirm('{{ __('Are you sure?') }}')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit"
-                                            class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border border-rose-300 text-rose-700 bg-white hover:bg-rose-50 dark:bg-slate-900 dark:border-rose-500/70 dark:text-rose-200">
-                                            {{ __('Delete') }}
-                                        </button>
-                                    </form>
-                                @endcan
-                            </div>
-                        </td>
+                        <th>{{ __('Image') }}</th>
+                        <th>{{ __('SKU') }}</th>
+                        <th>{{ __('Name') }}</th>
+                        <th>{{ __('Category') }}</th>
+                        <th>{{ __('Price') }}</th>
+                        <th>{{ __('Stock') }}</th>
+                        <th>{{ __('Status') }}</th>
+                        <th class="text-end">{{ __('Actions') }}</th>
                     </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="px-3 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
-                            {{ __('No products found.') }}
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    @forelse ($products as $product)
+                        <tr>
+                            <td>
+                                @if ($product->image)
+                                    <div class="avatar avatar-sm">
+                                        <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}"
+                                            class="rounded">
+                                    </div>
+                                @else
+                                    <span class="text-muted small">{{ __('N/A') }}</span>
+                                @endif
+                            </td>
+                            <td class="text-muted text-uppercase small">{{ $product->sku }}</td>
+                            <td>{{ $product->name }}</td>
+                            <td class="text-muted">
+                                @if ($product->category)
+                                    {{ app()->getLocale() === 'ar' ? $product->category->name_ar : $product->category->name_en }}
+                                @else
+                                    —
+                                @endif
+                            </td>
+                            <td>{{ number_format($product->price, 2) }}</td>
+                            <td>{{ $product->stock }}</td>
+                            <td>
+                                @if ($product->status === 'active')
+                                    <span class="badge bg-label-success">{{ __('Active') }}</span>
+                                @else
+                                    <span class="badge bg-label-secondary">{{ __('Inactive') }}</span>
+                                @endif
+                            </td>
+                            <td class="text-end">
+                                <div class="d-inline-flex align-items-center gap-1">
+                                    @can('products.update')
+                                        <a href="{{ route('admin.products.edit', $product) }}"
+                                            class="btn btn-sm btn-icon btn-outline-primary">
+                                            <i class="bx bx-edit-alt"></i>
+                                        </a>
+                                    @endcan
 
-        <div
-            class="border-t border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-400">
-            {{ $products->links() }}
+                                    @can('products.delete')
+                                        <form method="POST" action="{{ route('admin.products.destroy', $product) }}"
+                                            onsubmit="return confirm('{{ __('Are you sure?') }}')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-icon btn-outline-danger">
+                                                <i class="bx bx-trash"></i>
+                                            </button>
+                                        </form>
+                                    @endcan
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                {{ __('No products found.') }}
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-footer">
+            {{ $products->links('pagination::bootstrap-5') }}
         </div>
     </div>
 @endsection

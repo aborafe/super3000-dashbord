@@ -1,72 +1,62 @@
-@extends('layouts.app')
+@extends('layouts.admin')
+
+@section('title', __('Partner details'))
 
 @section('content')
-    @php
-        $title = __('Partner details');
-    @endphp
-
-    <div class="mb-4 flex items-center justify-between gap-2">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
-            <h1 class="text-xl font-semibold">
-                {{ $partner->name }}
-            </h1>
-            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                {{ $partner->phone }}
-            </p>
+            <h4 class="mb-1">{{ $partner->name }}</h4>
+            <p class="text-muted mb-0">{{ $partner->phone }}</p>
         </div>
-
-        <a href="{{ route('admin.partners.index') }}"
-            class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium border border-slate-300 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-600">
+        <a href="{{ route('admin.partners.index') }}" class="btn btn-outline-secondary">
             {{ __('Back to list') }}
         </a>
     </div>
 
-    <div class="grid gap-4 md:grid-cols-2">
-        <section class="rounded-md border border-slate-200 bg-white p-4 text-sm dark:border-slate-700 dark:bg-slate-900">
-            <h2 class="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                {{ __('Contact') }}
-            </h2>
-            <dl class="space-y-1">
-                <div class="flex items-center justify-between">
-                    <dt class="text-slate-500 dark:text-slate-400">{{ __('Email') }}</dt>
-                    <dd class="font-medium">{{ $partner->email ?: '—' }}</dd>
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ __('Contact') }}</h5>
                 </div>
-                <div class="flex items-center justify-between">
-                    <dt class="text-slate-500 dark:text-slate-400">{{ __('Address') }}</dt>
-                    <dd class="font-medium">{{ $partner->address ?: '—' }}</dd>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-4 text-muted">{{ __('Email') }}</dt>
+                        <dd class="col-8">{{ $partner->email ?: '—' }}</dd>
+                        <dt class="col-4 text-muted">{{ __('Address') }}</dt>
+                        <dd class="col-8">{{ $partner->address ?: '—' }}</dd>
+                        <dt class="col-4 text-muted">{{ __('Type') }}</dt>
+                        <dd class="col-8">{{ ucfirst($partner->role_type) }}</dd>
+                    </dl>
                 </div>
-                <div class="flex items-center justify-between">
-                    <dt class="text-slate-500 dark:text-slate-400">{{ __('Type') }}</dt>
-                    <dd class="font-medium">{{ ucfirst($partner->role_type) }}</dd>
-                </div>
-            </dl>
-        </section>
+            </div>
+        </div>
 
-        <section class="rounded-md border border-slate-200 bg-white p-4 text-sm dark:border-slate-700 dark:bg-slate-900">
-            <h2 class="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                {{ __('Stats') }}
-            </h2>
-            <dl class="space-y-1">
-                <div class="flex items-center justify-between">
-                    <dt class="text-slate-500 dark:text-slate-400">{{ __('Orders count') }}</dt>
-                    <dd class="font-medium">{{ $partner->orders->count() }}</dd>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ __('Stats') }}</h5>
                 </div>
-                <div class="flex items-center justify-between">
-                    <dt class="text-slate-500 dark:text-slate-400">{{ __('Debts count') }}</dt>
-                    <dd class="font-medium">{{ $partner->debts->count() }}</dd>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-6 text-muted">{{ __('Orders count') }}</dt>
+                        <dd class="col-6">{{ $partner->orders->count() }}</dd>
+                        <dt class="col-6 text-muted">{{ __('Debts count') }}</dt>
+                        <dd class="col-6">{{ $partner->debts->count() }}</dd>
+                    </dl>
                 </div>
-            </dl>
-        </section>
+            </div>
+        </div>
     </div>
 
     @if ($partner->notes)
-        <section class="mt-4 rounded-md border border-slate-200 bg-white p-4 text-sm dark:border-slate-700 dark:bg-slate-900">
-            <h2 class="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                {{ __('Notes') }}
-            </h2>
-            <p class="text-slate-600 dark:text-slate-300">
-                {{ $partner->notes }}
-            </p>
-        </section>
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">{{ __('Notes') }}</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">{{ $partner->notes }}</p>
+            </div>
+        </div>
     @endif
 @endsection

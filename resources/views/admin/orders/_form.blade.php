@@ -20,15 +20,11 @@
     })->values();
 @endphp
 
-<div x-data="orderForm(@json($productsPayload), @json($preparedItems))" class="space-y-6">
-    <div class="grid gap-4 md:grid-cols-2">
-        <div>
-            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
-                {{ __('Partner') }}
-            </label>
-            <select name="partner_id"
-                class="block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-sky-500 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-800"
-                required>
+<div x-data="orderForm(@json($productsPayload), @json($preparedItems))" class="d-flex flex-column gap-4">
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label">{{ __('Partner') }}</label>
+            <select name="partner_id" class="form-select @error('partner_id') is-invalid @enderror" required>
                 <option value="">{{ __('Select partner') }}</option>
                 @foreach ($partners as $partner)
                     <option value="{{ $partner->id }}"
@@ -38,17 +34,13 @@
                 @endforeach
             </select>
             @error('partner_id')
-                <p class="mt-1 text-xs text-rose-600">{{ $message }}</p>
+                <div class="invalid-feedback">{{ $message }}</div>
             @enderror
         </div>
 
-        <div>
-            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
-                {{ __('Order status') }}
-            </label>
-            <select name="status"
-                class="block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-sky-500 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-800"
-                required>
+        <div class="col-md-3">
+            <label class="form-label">{{ __('Order status') }}</label>
+            <select name="status" class="form-select @error('status') is-invalid @enderror" required>
                 @foreach ([
                     \App\Models\Order::STATUS_PENDING => __('Pending'),
                     \App\Models\Order::STATUS_CONFIRMED => __('Confirmed'),
@@ -62,17 +54,13 @@
                 @endforeach
             </select>
             @error('status')
-                <p class="mt-1 text-xs text-rose-600">{{ $message }}</p>
+                <div class="invalid-feedback">{{ $message }}</div>
             @enderror
         </div>
 
-        <div>
-            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
-                {{ __('Payment status') }}
-            </label>
-            <select name="payment_status"
-                class="block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-sky-500 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-800"
-                required>
+        <div class="col-md-3">
+            <label class="form-label">{{ __('Payment status') }}</label>
+            <select name="payment_status" class="form-select @error('payment_status') is-invalid @enderror" required>
                 @foreach ([
                     \App\Models\Order::PAYMENT_UNPAID => __('Unpaid'),
                     \App\Models\Order::PAYMENT_PARTIAL => __('Partial'),
@@ -84,65 +72,58 @@
                 @endforeach
             </select>
             @error('payment_status')
-                <p class="mt-1 text-xs text-rose-600">{{ $message }}</p>
+                <div class="invalid-feedback">{{ $message }}</div>
             @enderror
         </div>
     </div>
 
-    <div class="rounded-md border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-        <div class="flex items-center justify-between mb-3">
-            <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                {{ __('Order items') }}
-            </h2>
-            <button type="button" @click="addItem()"
-                class="inline-flex items-center px-2.5 py-1.5 rounded-md text-xs font-medium border border-slate-300 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600">
+    <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h5 class="mb-0">{{ __('Order items') }}</h5>
+            <button type="button" @click="addItem()" class="btn btn-sm btn-outline-primary">
                 {{ __('Add item') }}
             </button>
         </div>
-
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
-                <thead class="bg-slate-50 dark:bg-slate-800">
+        <div class="table-responsive text-nowrap">
+            <table class="table">
+                <thead class="table-light">
                     <tr>
-                        <th class="px-3 py-2 text-start font-medium text-slate-600 dark:text-slate-200">{{ __('Product') }}</th>
-                        <th class="px-3 py-2 text-start font-medium text-slate-600 dark:text-slate-200">{{ __('Qty') }}</th>
-                        <th class="px-3 py-2 text-start font-medium text-slate-600 dark:text-slate-200">{{ __('Price') }}</th>
-                        <th class="px-3 py-2 text-start font-medium text-slate-600 dark:text-slate-200">{{ __('Line total') }}</th>
-                        <th class="px-3 py-2 text-end font-medium text-slate-600 dark:text-slate-200">{{ __('Actions') }}</th>
+                        <th>{{ __('Product') }}</th>
+                        <th>{{ __('Qty') }}</th>
+                        <th>{{ __('Price') }}</th>
+                        <th>{{ __('Line total') }}</th>
+                        <th class="text-end">{{ __('Actions') }}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody class="table-border-bottom-0">
                     <template x-for="(item, index) in items" :key="item.key">
                         <tr>
-                            <td class="px-3 py-2">
+                            <td>
                                 <select x-model="item.product_id" @change="syncPrice(item)"
                                     :name="'items[' + index + '][product_id]'"
-                                    class="block w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-sky-500 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-800"
-                                    required>
+                                    class="form-select" required>
                                     <option value="">{{ __('Select product') }}</option>
                                     <template x-for="product in products" :key="product.id">
                                         <option :value="product.id" x-text="product.name"></option>
                                     </template>
                                 </select>
                             </td>
-                            <td class="px-3 py-2">
+                            <td style="width: 120px;">
                                 <input type="number" min="1" step="1" x-model.number="item.qty"
                                     :name="'items[' + index + '][qty]'"
-                                    class="block w-24 rounded-md border-slate-300 text-sm shadow-sm focus:border-sky-500 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-800"
-                                    required>
+                                    class="form-control" required>
                             </td>
-                            <td class="px-3 py-2">
+                            <td style="width: 140px;">
                                 <input type="number" min="0" step="0.01" x-model.number="item.price"
                                     :name="'items[' + index + '][price]'"
-                                    class="block w-28 rounded-md border-slate-300 text-sm shadow-sm focus:border-sky-500 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-800"
-                                    required>
+                                    class="form-control" required>
                             </td>
-                            <td class="px-3 py-2">
+                            <td>
                                 <span x-text="formatMoney(item.qty * item.price)"></span>
                             </td>
-                            <td class="px-3 py-2 text-end">
+                            <td class="text-end">
                                 <button type="button" @click="removeItem(index)"
-                                    class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border border-rose-300 text-rose-700 bg-white hover:bg-rose-50 dark:bg-slate-900 dark:border-rose-500/70 dark:text-rose-200"
+                                    class="btn btn-sm btn-outline-danger"
                                     :disabled="items.length === 1">
                                     {{ __('Remove') }}
                                 </button>
@@ -152,21 +133,17 @@
                 </tbody>
             </table>
         </div>
-
         @error('items')
-            <p class="mt-2 text-xs text-rose-600">{{ $message }}</p>
+            <div class="text-danger small px-4 pb-3">{{ $message }}</div>
         @enderror
     </div>
 </div>
 
-<div class="mt-6 flex items-center justify-end gap-2">
-    <a href="{{ route('admin.orders.index') }}"
-        class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium border border-slate-300 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-600">
+<div class="d-flex justify-content-end gap-2 mt-4">
+    <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary">
         {{ __('Cancel') }}
     </a>
-
-    <button type="submit"
-        class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium border border-sky-500 bg-sky-600 text-white hover:bg-sky-700">
+    <button type="submit" class="btn btn-primary">
         {{ $submitLabel ?? __('Save') }}
     </button>
 </div>

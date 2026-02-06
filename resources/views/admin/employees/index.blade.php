@@ -1,85 +1,82 @@
-@extends('layouts.app')
+@extends('layouts.admin')
+
+@section('title', __('Employees'))
 
 @section('content')
-    @php
-        $title = __('Employees');
-    @endphp
+    @include('admin.components.flash')
 
-    <div class="flex items-center justify-between mb-4">
-        <h1 class="text-xl font-semibold">
-            {{ __('Employees') }}
-        </h1>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h4 class="mb-1">{{ __('Employees') }}</h4>
+            <p class="text-muted mb-0">{{ __('Manage your team members.') }}</p>
+        </div>
 
         @can('employees.create')
-            <a href="{{ route('admin.employees.create') }}"
-                class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium border border-slate-300 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600">
-                {{ __('Add employee') }}
+            <a href="{{ route('admin.employees.create') }}" class="btn btn-primary">
+                <i class="bx bx-plus me-1"></i>{{ __('Add employee') }}
             </a>
         @endcan
     </div>
 
-    @if (session('status'))
-        <div
-            class="mb-4 rounded-md border border-emerald-500/60 bg-emerald-50 px-4 py-2 text-sm text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-100">
-            {{ session('status') }}
+    <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h5 class="mb-0">{{ __('Employees') }}</h5>
+            <span class="text-muted small">{{ __('Total: :count', ['count' => $employees->total()]) }}</span>
         </div>
-    @endif
-
-    <div class="overflow-x-auto rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-        <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
-            <thead class="bg-slate-50 dark:bg-slate-800">
-                <tr>
-                    <th class="px-3 py-2 text-start font-medium text-slate-600 dark:text-slate-200">{{ __('Name') }}</th>
-                    <th class="px-3 py-2 text-start font-medium text-slate-600 dark:text-slate-200">{{ __('Email') }}</th>
-                    <th class="px-3 py-2 text-start font-medium text-slate-600 dark:text-slate-200">{{ __('Job title') }}</th>
-                    <th class="px-3 py-2 text-end font-medium text-slate-600 dark:text-slate-200">{{ __('Actions') }}</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                @forelse ($employees as $employee)
+        <div class="table-responsive text-nowrap">
+            <table class="table">
+                <thead class="table-light">
                     <tr>
-                        <td class="px-3 py-2 whitespace-nowrap">{{ $employee->user?->name ?? '—' }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap">{{ $employee->user?->email ?? '—' }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap">{{ $employee->job_title ?? '—' }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-end">
-                            <div class="inline-flex items-center gap-1">
-                                <a href="{{ route('admin.employees.show', $employee) }}"
-                                    class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border border-slate-300 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600">
-                                    {{ __('View') }}
-                                </a>
-                                @can('employees.update')
-                                    <a href="{{ route('admin.employees.edit', $employee) }}"
-                                        class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border border-slate-300 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600">
-                                        {{ __('Edit') }}
+                        <th>{{ __('Name') }}</th>
+                        <th>{{ __('Email') }}</th>
+                        <th>{{ __('Job title') }}</th>
+                        <th class="text-end">{{ __('Actions') }}</th>
+                    </tr>
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    @forelse ($employees as $employee)
+                        <tr>
+                            <td>{{ $employee->user?->name ?? '—' }}</td>
+                            <td>{{ $employee->user?->email ?? '—' }}</td>
+                            <td>{{ $employee->job_title ?? '—' }}</td>
+                            <td class="text-end">
+                                <div class="d-inline-flex align-items-center gap-1">
+                                    <a href="{{ route('admin.employees.show', $employee) }}"
+                                        class="btn btn-sm btn-icon btn-outline-primary">
+                                        <i class="bx bx-show"></i>
                                     </a>
-                                @endcan
-                                @can('employees.delete')
-                                    <form method="POST" action="{{ route('admin.employees.destroy', $employee) }}"
-                                        onsubmit="return confirm('{{ __('Are you sure?') }}')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit"
-                                            class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border border-rose-300 text-rose-700 bg-white hover:bg-rose-50 dark:bg-slate-900 dark:border-rose-500/70 dark:text-rose-200">
-                                            {{ __('Delete') }}
-                                        </button>
-                                    </form>
-                                @endcan
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="4" class="px-3 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
-                            {{ __('No employees found.') }}
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+                                    @can('employees.update')
+                                        <a href="{{ route('admin.employees.edit', $employee) }}"
+                                            class="btn btn-sm btn-icon btn-outline-secondary">
+                                            <i class="bx bx-edit-alt"></i>
+                                        </a>
+                                    @endcan
+                                    @can('employees.delete')
+                                        <form method="POST" action="{{ route('admin.employees.destroy', $employee) }}"
+                                            onsubmit="return confirm('{{ __('Are you sure?') }}')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-icon btn-outline-danger">
+                                                <i class="bx bx-trash"></i>
+                                            </button>
+                                        </form>
+                                    @endcan
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
+                                {{ __('No employees found.') }}
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
 
-        <div
-            class="border-t border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-400">
-            {{ $employees->links() }}
+        <div class="card-footer">
+            {{ $employees->links('pagination::bootstrap-5') }}
         </div>
     </div>
 @endsection

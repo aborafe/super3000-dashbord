@@ -1,18 +1,26 @@
-@extends('layouts.app')
+@extends('layouts.admin')
+
+@section('title', __('Edit partner'))
 
 @section('content')
-    @php
-        $title = __('Edit partner');
-    @endphp
+    @include('admin.components.flash')
 
-    <div class="mb-4">
-        <h1 class="text-xl font-semibold">{{ __('Edit partner') }}</h1>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h4 class="mb-1">{{ __('Edit partner') }}</h4>
+            <p class="text-muted mb-0">{{ __('Update partner details.') }}</p>
+        </div>
+        <a href="{{ route('admin.partners.index') }}" class="btn btn-outline-secondary">
+            {{ __('Back to partners') }}
+        </a>
     </div>
 
-    <div class="rounded-md border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
-        <form method="POST" action="{{ route('admin.partners.update', $partner) }}">
-            @method('PUT')
-            @include('admin.partners._form', ['submitLabel' => __('Update'), 'partner' => $partner])
-        </form>
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" action="{{ route('admin.partners.update', $partner) }}">
+                @method('PUT')
+                @include('admin.partners._form', ['submitLabel' => __('Update'), 'partner' => $partner])
+            </form>
+        </div>
     </div>
 @endsection

@@ -33,7 +33,7 @@ class AdminProductsTest extends TestCase
     {
         $user = $this->createAdminUser();
 
-        $response = $this->actingAs($user)->get(route('admin.products.index'));
+        $response = $this->actingAs($user)->get(route('admin.products.index', ['locale' => 'en']));
 
         $response->assertOk();
         $response->assertSeeText('Products');
@@ -54,9 +54,9 @@ class AdminProductsTest extends TestCase
             'category_id' => $category->id,
         ];
 
-        $response = $this->actingAs($user)->post(route('admin.products.store'), $payload);
+        $response = $this->actingAs($user)->post(route('admin.products.store', ['locale' => 'en']), $payload);
 
-        $response->assertRedirect(route('admin.products.index'));
+        $response->assertRedirect(route('admin.products.index', ['locale' => 'en']));
         $this->assertDatabaseHas('products', [
             'sku' => 'TEST-001',
             'name_en' => 'Test Product',
