@@ -1,0 +1,70 @@
+Super3000 Backend Audit Report (Laravel 12 Hybrid: Blade Admin + API v1)
+Date: 2026-02-06
+
+1) Executive Summary: PARTIAL
+The repository contains a solid Laravel 12 scaffold, database schema, and basic admin/API modules. However, multiple plan-critical modules are incomplete or missing (notifications, orders workflow, reports depth, partners/warehouses/employees UI), and localization/theme requirements are only partially met.
+
+2) Compliance Score: 52/100
+Rationale: Core scaffolding and basic products/orders/reporting/API exist, but several required modules are missing or only partially implemented (notifications system, financial/sales reporting depth, orders/payments/invoice workflow, locale middleware/prefix). Coverage is therefore below “mostly complete.”
+
+3) Plan Checklist Table
+| Requirement | Status | Evidence (short) |
+| --- | --- | --- |
+| DB scaffold (partners/products/categories/warehouses/product_stocks/stock_movements/employees/orders/order_items/payments/debts + seeders + MVP profit/loss) | Partial | Migrations present in `database/migrations/*create_*_table.php`; models w/ relations in `app/Models/*`; profit calc in `app/Models/Order.php::recalculateTotals()`. Demo seeders exist but no payments/debts seeding (`database/seeders/*`). |
+| Auth & RBAC (Sanctum + spatie permission, seed roles/permissions, enforce in routes/Blade) | Partial | Sanctum + Spatie in `composer.json`; permission tables migration; `RolesAndPermissionsSeeder`; permissions enforced in routes and `@can` in Blade. Admin routes gated by `role:admin` only (`routes/web.php`). |
+| Localized Blade layout (RTL/LTR, sidebar/navbar partials, theme toggle via Tailwind + Alpine) | Partial | `resources/views/layouts/app.blade.php` sets `dir` and uses partials; theme toggle uses session (`ThemeController`). No Alpine/localStorage; no locale middleware; dashboard uses standalone HTML w/ `dir="rtl"`.
+| Products module (FormRequests, controller, Blade CRUD, permissions, search/filter/sort/pagination, image upload) | Partial | FormRequests and CRUD exist (`app/Http/Requests/*`, `Admin/ProductController`, views). Search/filter/pagination present, but no sortable fields or image upload handling (only image URL string).
+| Orders module (statuses, payments, dynamic forms, profit calc, invoice view) | Partial | Status/payment status supported and profit calc exists, but no order create/store UI, no payments records UI, no invoice view (`Admin/OrderController`, `resources/views/admin/orders/*`). |
+| Reports (financial + sales reports, charts, filters) | Partial | `ReportService` provides KPIs/top products/debts and date filters; no charts, financial distribution logic, or least-selling products.
+| Notifications (DB-backed triggers + navbar UI) | Missing | No notifications migration; no notification classes or triggers; navbar lacks unread count/UI.
+| API v1 (Sanctum-protected, controllers/resources, standardized envelope, docs) | Partial | `/api/v1` routes protected by Sanctum; controllers/resources and `docs/api-v1.md` exist. Envelope is mostly data/meta but not centrally standardized for all cases.
+| Polish (validation, tests, accessibility, README run instructions) | Partial | Product validation OK; limited tests in `tests/Feature/*`; README contains run steps but still mostly default Laravel content.
+
+4) Findings
+Critical
+- Notifications system absent (DB + triggers + UI).
+  Evidence: No `create_notifications_table` migration in `database/migrations/`; `rg` found no notification classes/usages; navbar UI in `resources/views/partials/navbar.blade.php` has no notifications section.
+- Core admin modules missing (partners, warehouses/stock management, employees) beyond schema.
+  Evidence: No routes in `routes/web.php` for partners/warehouses/employees; only controllers in `app/Http/Controllers/Admin` are Product/Order/Report; no corresponding Blade views in `resources/views/admin/*`.
+
+High
+- Orders workflow incomplete: no order creation, no payments records UI, no invoice view.
+  Evidence: `app/Http/Controllers/Admin/OrderController.php` only has index/show/updateStatus/updatePaymentStatus; `resources/views/admin/orders` only contains `index.blade.php` and `show.blade.php`; `app/Models/Payment.php` exists but is not wired into admin workflows.
+- Localization is not fully wired (no locale middleware/prefix; inconsistent layout usage).
+  Evidence: Locale switch only stores session in `LocaleController`; no middleware in `bootstrap/app.php` to apply session locale; `resources/views/admin/dashboard.blade.php` is standalone HTML with hard-coded `dir="rtl"`.
+
+Medium
+- Theme toggle is session-only; no Alpine/localStorage or client-side persistence.
+  Evidence: `ThemeController` uses session; `resources/js/app.js` only imports bootstrap; no Alpine setup.
+- Products module lacks image upload handling and sortable listing.
+  Evidence: `StoreProductRequest`/`UpdateProductRequest` accept `image` as string; `ProductController` does not handle files; index orders by `id` only.
+- Reports are minimal and missing required financial/sales depth (charts, distribution/least-selling).
+  Evidence: `app/Services/ReportService.php` returns KPI + top products + debts only; `resources/views/admin/reports/index.blade.php` has tables, no charts.
+- Seed data missing for payments/debts.
+  Evidence: `DatabaseSeeder` calls `ReferenceDataSeeder` and `DemoOrdersSeeder` but no seeder creates `payments` or `debts` records.
+
+Low
+- `.env.example` does not mention `super3000` database name.
+  Evidence: `.env.example` uses sqlite by default and comments `DB_DATABASE=laravel`.
+- Admin dashboard view bypasses shared layout and theming.
+  Evidence: `resources/views/admin/dashboard.blade.php` contains full HTML and does not extend `layouts.app`.
+
+5) Recommended Next Actions (ordered)
+1) Implement notifications system (DB migration, Notification classes, triggers on order create/status change/low stock, navbar UI). Effort: L
+2) Build missing admin modules for partners, warehouses/stock, employees (controllers, routes, views, permissions). Effort: L
+3) Complete orders workflow (order create/store UI, payment records, invoice view, stock adjustments). Effort: L
+4) Add locale middleware + locale-prefixed routes (ar/en), and unify all admin views under `layouts.app`. Effort: M
+5) Expand reports (financial distribution logic, sales reports incl. least-selling, charts). Effort: M
+6) Implement product image upload (file validation, storage, display) and add sort options to product index. Effort: M
+7) Improve tests coverage for orders, reports, and API error cases. Effort: S
+8) Update `.env.example` and README to reflect Super3000 defaults. Effort: S
+
+6) Commands Run (key outputs)
+- `Get-ChildItem database\migrations` -> confirmed migrations for partners/products/categories/warehouses/product_stocks/stock_movements/employees/orders/order_items/payments/debts + permission/sanctum tables.
+- `rg "notification|notify|notifications" app resources database routes` -> no matches found.
+- `Get-Content` of key routes/controllers/views/models/seeders confirmed partial module implementations.
+
+7) Notes
+- No automated tests were executed during this audit (read-only inspection only).
+
+End of report.
