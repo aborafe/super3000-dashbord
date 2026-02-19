@@ -8,6 +8,7 @@ use App\Http\Resources\OrderResource;
 use App\Models\ActivityLog;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\InventoryService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -93,6 +94,8 @@ class OrderController extends ApiController
             $order = DB::transaction(function () use ($request, $customer, $idempotencyKey): Order {
                 $validated = $request->validated();
                 $items = $validated['items'];
+                $inventory = app(InventoryService::class);
+                $defaultWarehouseId = $inventory->resolveDefaultWarehouseId();
                 $snapshotInput = $this->extractCheckoutContact($validated, $customer);
                 $requestedByProduct = collect($items)
                     ->groupBy('productId')
@@ -109,12 +112,16 @@ class OrderController extends ApiController
                     $requestedQty = (int) $requestedQty;
                     /** @var \App\Models\Product|null $product */
                     $product = $products->get($productId);
+                    $availableQty = $product
+                        ? $inventory->availableInWarehouse($productId, $defaultWarehouseId)
+                        : null;
 
-                    if (! $product || ! $product->is_active || $product->stock_qty < $requestedQty) {
+                    if (! $product || ! $product->is_active || $availableQty < $requestedQty) {
                         Log::notice('api.orders.stock_conflict', [
                             'product_id' => $productId,
                             'requested' => $requestedQty,
-                            'available' => $product?->stock_qty,
+                            'available' => $availableQty,
+                            'warehouse_id' => $defaultWarehouseId,
                         ]);
 
                         throw new StockConflictException('Insufficient stock');
@@ -150,8 +157,15 @@ class OrderController extends ApiController
                         'cost' => $product->price,
                         'line_total' => $lineTotal,
                     ]);
+                }
 
-                    $product->decrement('stock_qty', $qty);
+                foreach ($requestedByProduct as $productId => $requestedQty) {
+                    $inventory->moveStock(
+                        (int) $productId,
+                        $defaultWarehouseId,
+                        -1 * (int) $requestedQty,
+                        'Order ' . $order->order_no . ' created via API'
+                    );
                 }
 
                 $order->loadMissing('items');

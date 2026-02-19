@@ -96,3 +96,27 @@ Started: 2026-02-19
   - Realtime infra switch to Reverb still pending CP5.
 - Rollback:
   - Use branch tag `CP3-api-v2`.
+
+### CP4-inventory-master-sync
+- Status: completed
+- Summary:
+  - Implemented centralized inventory domain service (`InventoryService`) with warehouse-aware stock moves.
+  - Switched stock operations to `product_stocks` as master source.
+  - Synced display stock (`products.stock_qty`) from master quantities after each movement/reconcile.
+  - Updated API order creation to validate/deduct from configured default warehouse only.
+  - Added default warehouse bootstrap + data backfill migrations:
+    - `000010_set_default_inventory_warehouse_setting`
+    - `000011_backfill_product_stocks_from_products`
+  - Added `inventory:reconcile` artisan command (with `--dry-run`) to repair drift.
+  - Updated product create/update and admin inventory movement flows to use service-based stock updates.
+  - Added guardrails to keep product stock editing aligned with master warehouse logic.
+- Validation:
+  - `php artisan migrate --force` => `000010` and `000011` applied.
+  - `php artisan inventory:reconcile --dry-run` => `Mismatches: 0`.
+  - `php artisan inventory:reconcile` => `Updated products: 0`.
+  - `php artisan test` => `51 passed`.
+- Risks observed:
+  - Realtime delivery is still pending CP5 infrastructure switch.
+  - Old data integrations that write directly to `products.stock_qty` must move to service/warehouse movements.
+- Rollback:
+  - Use branch tag `CP4-inventory-master-sync`.

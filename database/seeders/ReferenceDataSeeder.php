@@ -3,10 +3,11 @@
 namespace Database\Seeders;
 
 use App\Models\Category;
-use App\Models\Partner;
+use App\Models\Customer;
 use App\Models\Product;
-use App\Models\ProductStock;
+use App\Models\Setting;
 use App\Models\Warehouse;
+use App\Services\InventoryService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -17,104 +18,61 @@ class ReferenceDataSeeder extends Seeder
      */
     public function run(): void
     {
-        $categories = collect([
-            ['name_en' => 'Electronics', 'name_ar' => 'إلكترونيات'],
-            ['name_en' => 'Groceries', 'name_ar' => 'بقالة'],
-            ['name_en' => 'Clothing', 'name_ar' => 'ملابس'],
-        ])->map(function (array $data) {
-            return Category::query()->firstOrCreate(
-                ['name_en' => $data['name_en']],
-                $data,
-            );
-        });
+        $categories = Category::factory()->count(10)->create();
+        $warehouses = Warehouse::factory()->count(3)->create();
+        Customer::factory()->count(10)->create();
+        $inventory = app(InventoryService::class);
+        $defaultWarehouse = $warehouses->first();
 
-        $warehouses = collect([
-            ['name' => 'Main Warehouse', 'location' => 'Head Office'],
-            ['name' => 'Secondary Warehouse', 'location' => 'City Branch'],
-        ])->map(function (array $data) {
-            return Warehouse::query()->firstOrCreate(
-                ['name' => $data['name']],
-                $data,
-            );
-        });
+        if ($defaultWarehouse) {
+            Setting::setValue('inventory.default_warehouse_id', (string) $defaultWarehouse->id);
+        }
 
-        $partners = collect([
-            [
-                'name' => 'Wholesale Partner 1',
-                'phone' => '01000000001',
-                'email' => 'wholesale1@example.com',
-                'role_type' => 'wholesale',
-            ],
-            [
-                'name' => 'Retail Partner 1',
-                'phone' => '01000000002',
-                'email' => 'retail1@example.com',
-                'role_type' => 'retail',
-            ],
-            [
-                'name' => 'Mixed Partner',
-                'phone' => '01000000003',
-                'email' => 'mixed@example.com',
-                'role_type' => 'both',
-            ],
-        ])->map(function (array $data) {
-            return Partner::query()->firstOrCreate(
-                ['phone' => $data['phone']],
-                $data,
-            );
-        });
+        $products = Product::factory()
+            ->count(25)
+            ->state(fn () => ['category_id' => $categories->random()->id])
+            ->create();
 
-        $products = collect([
-            [
-                'name_en' => 'Laptop',
-                'name_ar' => 'حاسوب محمول',
-                'sku' => 'LAP-001',
-                'price' => 1500_00 / 100,
-                'cost' => 1200_00 / 100,
-                'status' => 'active',
-            ],
-            [
-                'name_en' => 'T-Shirt',
-                'name_ar' => 'قميص',
-                'sku' => 'TSH-001',
-                'price' => 100_00 / 100,
-                'cost' => 60_00 / 100,
-                'status' => 'active',
-            ],
-            [
-                'name_en' => 'Rice Bag',
-                'name_ar' => 'كيس أرز',
-                'sku' => 'RICE-001',
-                'price' => 50_00 / 100,
-                'cost' => 30_00 / 100,
-                'status' => 'active',
-            ],
-        ])->map(function (array $data, int $index) use ($categories) {
-            $category = $categories[$index % $categories->count()];
-
-            return Product::query()->firstOrCreate(
-                ['sku' => $data['sku']],
-                array_merge($data, [
-                    'stock' => 0,
-                    'category_id' => $category->id,
-                ]),
-            );
-        });
-
-        // Seed initial stock distribution
         foreach ($products as $product) {
-            foreach ($warehouses as $warehouse) {
-                ProductStock::query()->firstOrCreate(
-                    [
-                        'product_id' => $product->id,
-                        'warehouse_id' => $warehouse->id,
-                    ],
-                    ['qty' => 50],
-                );
+            $initialStock = (int) $product->stock_qty;
+            $product->update(['stock_qty' => 0]);
 
-                // Keep aggregated stock in products table in sync
-                $product->increment('stock', 50);
+            if ($initialStock > 0 && $defaultWarehouse) {
+                $inventory->moveStock(
+                    (int) $product->id,
+                    (int) $defaultWarehouse->id,
+                    $initialStock,
+                    'Initial stock seed'
+                );
             }
         }
+
+        foreach (range(1, 20) as $i) {
+            $product = $products->random();
+            $warehouse = $warehouses->random();
+            $type = $product->stock_qty <= 2 ? 'in' : collect(['in', 'out'])->random();
+            $qty = random_int(1, 20);
+
+            $availableQty = $inventory->availableInWarehouse((int) $product->id, (int) $warehouse->id);
+
+            if ($type === 'out' && $availableQty < $qty) {
+                $type = 'in';
+            }
+
+            $inventory->moveStock(
+                (int) $product->id,
+                (int) $warehouse->id,
+                $type === 'in' ? $qty : -1 * $qty,
+                $type === 'in' ? 'Initial stock' : 'Stock usage'
+            );
+
+            $product->refresh();
+        }
+
+        Setting::setValue('general.site_name', 'Super3000');
+        Setting::setValue('general.support_email', 'support@super3000.test');
+        Setting::setValue('general.support_phone', '+1 000 000 0000');
+        Setting::setValue('appearance.theme', 'light');
+        Setting::setValue('appearance.rtl', '0');
     }
 }

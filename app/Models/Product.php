@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
@@ -17,7 +18,6 @@ class Product extends Model
         'name',
         'sku',
         'price',
-        'stock_qty',
         'is_active',
         'category_id',
         // new fields
@@ -55,6 +55,33 @@ class Product extends Model
 
     protected static function booted()
     {
+        static::created(function (Product $product): void {
+            if (! Schema::hasTable('product_stocks') || ! Schema::hasTable('warehouses')) {
+                return;
+            }
+
+            $inventory = app(\App\Services\InventoryService::class);
+            $defaultWarehouseId = $inventory->resolveDefaultWarehouseId();
+            $initialQty = max(0, (int) $product->stock_qty);
+
+            $stock = ProductStock::query()->firstOrCreate(
+                [
+                    'product_id' => $product->id,
+                    'warehouse_id' => $defaultWarehouseId,
+                ],
+                [
+                    'qty' => 0,
+                ]
+            );
+
+            if ((int) $stock->qty !== $initialQty) {
+                $stock->qty = $initialQty;
+                $stock->save();
+            }
+
+            $inventory->syncProductStockQty((int) $product->id);
+        });
+
         static::deleting(function (Product $product) {
             if (! $product->isForceDeleting()) {
                 return;
