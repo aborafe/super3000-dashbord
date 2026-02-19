@@ -5,6 +5,7 @@
 @section('content')
     @php
         $normalizedStatus = $order->normalized_status;
+        $canEditInvoiceItems = in_array($normalizedStatus, ['pending', 'approved'], true);
         $statusBadge = match ($normalizedStatus) {
             'approved', 'delivered' => 'bg-label-success',
             'shipped' => 'bg-label-info',
@@ -99,7 +100,8 @@
             </div>
             <div class="d-flex align-items-center gap-2">
                 <span class="small text-muted d-none" data-details-save-state></span>
-                <a href="{{ route('admin.invoices.print', $order) }}" class="btn btn-outline-secondary" data-print-link>
+                <a href="{{ route('admin.invoices.print', ['locale' => app()->getLocale(), 'order' => $order]) }}"
+                    class="btn btn-outline-secondary" data-print-link>
                     <i class="icon-base bx bx-printer me-1"></i>{{ __('Print Invoice') }}
                 </a>
             </div>
@@ -110,12 +112,20 @@
                 <div class="card invoice-card mb-4">
                     <div class="card-header d-flex align-items-center justify-content-between">
                         <h5 class="mb-0"><i class="bx bx-receipt me-1 text-primary"></i>{{ __('Invoice items') }}</h5>
-                        <button type="button" class="btn btn-sm btn-label-primary" data-add-item>
+                        <button type="button" class="btn btn-sm btn-label-primary" data-add-item
+                            @disabled(!$canEditInvoiceItems)>
                             <i class="bx bx-plus me-1"></i>{{ __('Add Item') }}
                         </button>
                     </div>
                     <div class="card-body">
-                        <form method="POST" action="{{ route('admin.orders.items', $order) }}" id="invoice-items-form">
+                        @unless ($canEditInvoiceItems)
+                            <div class="alert alert-warning py-2 px-3">
+                                {{ __('Invoice items are locked after shipping or closing the order.') }}
+                            </div>
+                        @endunless
+                        <form method="POST"
+                            action="{{ route('admin.orders.items', ['locale' => app()->getLocale(), 'order' => $order]) }}"
+                            id="invoice-items-form">
                             @csrf
                             @method('PATCH')
 
@@ -150,7 +160,8 @@
                                                             value="{{ $itemRow['id'] }}">
                                                     @endif
                                                     <select class="form-select form-select-sm" required
-                                                        name="items[{{ $index }}][product_id]" data-product-select>
+                                                        name="items[{{ $index }}][product_id]" data-product-select
+                                                        @disabled(!$canEditInvoiceItems)>
                                                         <option value="">{{ __('Select product') }}</option>
                                                         @foreach ($products as $product)
                                                             <option value="{{ $product->id }}"
@@ -169,21 +180,24 @@
                                                         <input type="number" class="form-control" min="0"
                                                             step="0.01" required
                                                             name="items[{{ $index }}][price]"
-                                                            value="{{ $itemRow['price'] ?? '' }}" data-price-input>
+                                                            value="{{ $itemRow['price'] ?? '' }}" data-price-input
+                                                            @disabled(!$canEditInvoiceItems)>
                                                     </div>
                                                 </td>
                                                 <td>
                                                     <input type="number" class="form-control form-control-sm"
                                                         min="1" step="1" required
                                                         name="items[{{ $index }}][qty]"
-                                                        value="{{ $itemRow['qty'] ?? 1 }}" data-qty-input>
+                                                        value="{{ $itemRow['qty'] ?? 1 }}" data-qty-input
+                                                        @disabled(!$canEditInvoiceItems)>
                                                 </td>
                                                 <td class="fw-semibold" data-line-total-cell>
                                                     <span data-line-total>${{ number_format($lineTotal, 2) }}</span>
                                                 </td>
                                                 <td class="text-center">
                                                     <button type="button" class="btn btn-sm btn-icon btn-label-danger"
-                                                        data-remove-item title="{{ __('Remove item') }}">
+                                                        data-remove-item title="{{ __('Remove item') }}"
+                                                        @disabled(!$canEditInvoiceItems)>
                                                         <i class="bx bx-trash"></i>
                                                     </button>
                                                 </td>
@@ -201,7 +215,7 @@
                                     <h5 class="mb-3">{{ __('Total') }}:
                                         <strong data-summary-total>${{ number_format($order->total, 2) }}</strong>
                                     </h5>
-                                    <button type="submit" class="btn btn-primary">
+                                    <button type="submit" class="btn btn-primary" @disabled(!$canEditInvoiceItems)>
                                         <i class="bx bx-save me-1"></i>{{ __('Save Invoice Items') }}
                                     </button>
                                 </div>
@@ -215,7 +229,8 @@
                         <h5 class="mb-0"><i class="bx bx-refresh me-1 text-primary"></i>{{ __('Order status') }}</h5>
                     </div>
                     <div class="card-body">
-                        <form method="POST" action="{{ route('admin.orders.status', $order) }}"
+                        <form method="POST"
+                            action="{{ route('admin.orders.status', ['locale' => app()->getLocale(), 'order' => $order]) }}"
                             class="d-flex justify-content-end align-items-center gap-2 flex-wrap">
                             @csrf
                             @method('PATCH')
@@ -258,7 +273,9 @@
             </div>
 
             <div class="col-xl-4">
-                <form method="POST" action="{{ route('admin.orders.details', $order) }}" class="d-flex flex-column gap-4"
+                <form method="POST"
+                    action="{{ route('admin.orders.details', ['locale' => app()->getLocale(), 'order' => $order]) }}"
+                    class="d-flex flex-column gap-4"
                     id="order-details-form">
                     @csrf
                     @method('PATCH')

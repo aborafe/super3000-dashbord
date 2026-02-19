@@ -144,3 +144,27 @@ Started: 2026-02-19
   - Reverb runtime can only be fully enabled after fixing Composer CA and installing missing broadcast packages.
 - Rollback:
   - Use branch tag `CP5-realtime-notifications`.
+
+### CP6-dashboard-permissions
+- Status: completed
+- Summary:
+  - Enforced strict admin invoice item edits by order lifecycle:
+    - allowed only for `pending` and `approved`.
+    - blocked for `shipped`, `delivered`, `cancelled`, `returned`.
+  - Added inventory reconciliation for admin invoice item changes:
+    - calculates product-level quantity deltas from existing vs requested lines.
+    - applies stock mutations through `InventoryService` on default warehouse.
+    - rejects save on stock conflicts with user-facing validation errors.
+  - Kept invoice totals recalculation and item persistence inside transaction flow.
+  - Updated admin order page UX to reflect lock state:
+    - disabled invoice editing controls on non-editable statuses.
+    - added warning message for locked invoice states.
+  - Normalized locale-safe route generation in order show/details/items/status/print actions.
+  - Extended invoice editor feature tests for stock reconciliation and post-shipping lock behavior.
+- Validation:
+  - `php artisan test --filter=AdminOrderInvoiceEditorTest` => pass.
+  - `php artisan test` => `52 passed`.
+- Risks observed:
+  - CP5 composer SSL blocker still prevents full Reverb package activation in this environment.
+- Rollback:
+  - Use branch tag `CP6-dashboard-permissions`.
