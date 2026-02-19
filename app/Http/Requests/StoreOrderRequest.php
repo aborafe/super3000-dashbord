@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Order;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreOrderRequest extends FormRequest
 {
@@ -16,11 +17,7 @@ class StoreOrderRequest extends FormRequest
     {
         return [
             'customer_id' => ['required', 'exists:customers,id'],
-            'status' => ['required', 'in:' . implode(',', [
-                Order::STATUS_PENDING,
-                Order::STATUS_SHIPPED,
-                Order::STATUS_DELIVERED,
-            ])],
+            'status' => ['required', Rule::in(Order::workflowStatuses())],
         ];
     }
 }

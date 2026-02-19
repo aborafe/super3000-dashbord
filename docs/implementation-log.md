@@ -45,3 +45,25 @@ Started: 2026-02-19
   - Realtime driver remains `log` until CP5.
 - Rollback:
   - Use branch tag `CP1-critical-security`.
+
+### CP2-schema-state-machine
+- Status: completed
+- Summary:
+  - Added domain state machine for orders (`pending -> approved -> shipped -> delivered`, with `cancelled/returned` rules).
+  - Enforced transition rules in admin status update endpoint and validation.
+  - Normalized legacy status values (`paid -> approved`) at model/resource/domain level.
+  - Added schema migration to move `orders.status` to workflow-safe string values and remap old values.
+  - Added `softDeletes` for `customers`, `products`, and `categories`.
+  - Updated relations to keep historical references visible with soft-deleted records (`withTrashed()`).
+  - Added/optimized indexes for unread notifications lookups.
+  - Enforced customer contact uniqueness with safe dedup migration and unique indexes on `email` and `phone`.
+  - Updated dashboard/order/invoice views and translations to use `approved` flow.
+  - Added transition tests for invalid skips and cancel-after-shipping protection.
+- Validation:
+  - `php artisan migrate --force` => migrations applied successfully.
+  - `php artisan test` => `48 passed`.
+- Risks observed:
+  - `api/v1/auth/register` still active until API v2 cutover.
+  - Realtime delivery still waiting CP5 (`BROADCAST_CONNECTION=log` before runtime switch).
+- Rollback:
+  - Use branch tag `CP2-schema-state-machine`.

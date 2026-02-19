@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Order;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateOrderStatusRequest extends FormRequest
 {
@@ -15,11 +16,7 @@ class UpdateOrderStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['required', 'in:' . implode(',', [
-                Order::STATUS_PENDING,
-                Order::STATUS_SHIPPED,
-                Order::STATUS_DELIVERED,
-            ])],
+            'status' => ['required', Rule::in(Order::workflowStatuses())],
         ];
     }
 }

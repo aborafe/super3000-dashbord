@@ -38,7 +38,7 @@ class ReportService
         $summary = [
             'orders_count' => $orders->count(),
             'revenue_total' => (float) $orders->sum('total'),
-            'profit_total' => (float) $orders->sum('profit'),
+            'profit_total' => 0.0,
             'avg_order_value' => $orders->count() > 0
                 ? (float) ($orders->sum('total') / $orders->count())
                 : 0.0,
@@ -156,18 +156,18 @@ class ReportService
     protected function buildFinancialDistribution(Collection $orders): array
     {
         $cash = (float) $orders
-            ->where('payment_status', Order::PAYMENT_PAID)
+            ->where('status', Order::STATUS_APPROVED)
             ->sum('total');
 
         $receivables = (float) $orders
-            ->whereIn('payment_status', [Order::PAYMENT_PARTIAL, Order::PAYMENT_UNPAID])
+            ->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_SHIPPED])
             ->sum('total');
 
         $inventoryValue = (float) ProductStock::query()
             ->with('product')
             ->get()
             ->sum(function (ProductStock $stock): float {
-                return $stock->qty * (float) ($stock->product?->cost ?? 0);
+                return $stock->qty * (float) ($stock->product?->price ?? 0);
             });
 
         $total = $cash + $receivables + $inventoryValue;

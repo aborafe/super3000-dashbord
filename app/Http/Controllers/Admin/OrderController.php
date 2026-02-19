@@ -3,487 +3,338 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreOrderRequest;
-use App\Http\Requests\StorePaymentRequest;
-use App\Http\Requests\UpdateOrderRequest;
+use App\Http\Requests\UpdateOrderStatusRequest;
 use App\Models\Order;
-use App\Models\Partner;
-use App\Models\Payment;
 use App\Models\Product;
-use App\Models\ProductStock;
-use App\Models\StockMovement;
-use App\Models\Warehouse;
-use Illuminate\Contracts\View\View;
+use App\Support\ActivityLogger;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class OrderController extends Controller
 {
-    /**
-     * Display a listing of the orders.
-     */
-    public function index(Request $request): View
+    public function index(): View
     {
-        $this->authorizeView();
+        $search = request('q');
+        $rawStatus = request('status');
+        $status = is_string($rawStatus) && $rawStatus !== ''
+            ? Order::normalizeStatus($rawStatus)
+            : null;
+        $perPage = (int) request('per_page', 10);
+        $perPage = in_array($perPage, [10, 25, 50], true) ? $perPage : 10;
 
-        $query = Order::query()
-            ->with(['partner', 'creator'])
-            ->orderByDesc('created_at');
-
-        if ($status = $request->string('status')->toString()) {
-            $query->where('status', $status);
-        }
-
-        if ($paymentStatus = $request->string('payment_status')->toString()) {
-            $query->where('payment_status', $paymentStatus);
-        }
-
-        if ($partnerId = $request->integer('partner_id')) {
-            $query->where('partner_id', $partnerId);
-        }
-
-        if ($from = $request->date('from')) {
-            $query->whereDate('created_at', '>=', $from);
-        }
-
-        if ($to = $request->date('to')) {
-            $query->whereDate('created_at', '<=', $to);
-        }
-
-        $orders = $query
-            ->paginate(15)
+        $orders = Order::query()
+            ->with('customer')
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($inner) use ($search) {
+                    $inner->where('order_no', 'like', '%' . $search . '%')
+                        ->orWhereHas('customer', function ($customerQuery) use ($search) {
+                            $customerQuery->where('name', 'like', '%' . $search . '%')
+                                ->orWhere('email', 'like', '%' . $search . '%');
+                        });
+                });
+            })
+            ->when($status, fn($query) => $query->where('status', $status))
+            ->latest()
+            ->paginate($perPage)
             ->withQueryString();
 
-        $partners = Partner::query()
+        $tableStats = [
+            [
+                'value' => number_format(Order::query()->count()),
+                'label' => __('All Orders'),
+                'icon' => 'bx-receipt',
+            ],
+            [
+                'value' => number_format(Order::query()->where('status', Order::STATUS_PENDING)->count()),
+                'label' => __('Pending'),
+                'icon' => 'bx-time-five',
+            ],
+            [
+                'value' => number_format(Order::query()->where('status', Order::STATUS_APPROVED)->count()),
+                'label' => __('Approved'),
+                'icon' => 'bx-check-circle',
+            ],
+            [
+                'value' => number_format(Order::query()->where('status', Order::STATUS_SHIPPED)->count()),
+                'label' => __('Shipped'),
+                'icon' => 'bx-truck',
+            ],
+        ];
+
+        return view('admin.orders.index', compact('orders', 'status', 'search', 'perPage', 'tableStats'));
+    }
+
+    public function show(Order $order): View
+    {
+        $order->load(['customer', 'items.product', 'payments']);
+        $normalizedStatus = $order->normalized_status;
+        $products = Product::query()
+            ->select(['id', 'name', 'price', 'sku'])
+            ->where('is_active', true)
             ->orderBy('name')
             ->get();
 
-        return view('admin.orders.index', [
-            'orders' => $orders,
-            'partners' => $partners,
-            'filters' => $request->only(['status', 'payment_status', 'partner_id', 'from', 'to']),
-        ]);
+        $paidPayment = $order->payments
+            ->where('status', 'paid')
+            ->sortByDesc('paid_at')
+            ->first();
+
+        $timeline = [
+            [
+                'title' => __('Order was placed'),
+                'subtitle' => __('Order :no was created.', ['no' => $order->order_no]),
+                'time' => $order->created_at,
+                'type' => 'primary',
+            ],
+        ];
+
+        if ($paidPayment) {
+            $timeline[] = [
+                'title' => __('Payment received'),
+                'subtitle' => __('Payment :method for :amount', [
+                    'method' => ucfirst($paidPayment->method),
+                    'amount' => '$' . number_format($paidPayment->amount, 2),
+                ]),
+                'time' => $paidPayment->paid_at ?? $order->updated_at,
+                'type' => 'success',
+            ];
+        }
+
+        if ($normalizedStatus === Order::STATUS_SHIPPED) {
+            $timeline[] = [
+                'title' => __('Dispatched'),
+                'subtitle' => __('Package has been picked up by courier'),
+                'time' => $order->updated_at,
+                'type' => 'info',
+            ];
+        }
+
+        if ($normalizedStatus === Order::STATUS_DELIVERED) {
+            $timeline[] = [
+                'title' => __('Delivered'),
+                'subtitle' => __('Package has been delivered to customer'),
+                'time' => $order->updated_at,
+                'type' => 'success',
+            ];
+        }
+
+        if ($normalizedStatus === Order::STATUS_RETURNED) {
+            $timeline[] = [
+                'title' => __('Returned'),
+                'subtitle' => __('Order has been returned'),
+                'time' => $order->updated_at,
+                'type' => 'secondary',
+            ];
+        }
+
+        if ($normalizedStatus === Order::STATUS_CANCELLED) {
+            $timeline[] = [
+                'title' => __('Cancelled'),
+                'subtitle' => __('Order was cancelled'),
+                'time' => $order->updated_at,
+                'type' => 'danger',
+            ];
+        }
+
+        $availableStatusTransitions = collect($order->availableTransitions())
+            ->prepend($normalizedStatus)
+            ->values()
+            ->all();
+
+        $customerOrdersCount = $order->customer?->orders()->count() ?? 0;
+        $customerDetails = [
+            'name' => $order->customer_name ?: ($order->customer?->name ?? ''),
+            'email' => $order->customer_email ?: ($order->customer?->email ?? ''),
+            'phone' => $order->customer_phone ?: ($order->customer?->phone ?? ''),
+            'whatsapp' => $order->customer_whatsapp ?? '',
+            'address' => $order->customer_address ?? '',
+            'notes' => $order->customer_notes ?? '',
+        ];
+        $shippingAddress = is_array($order->shipping_address) ? $order->shipping_address : [];
+        if (($shippingAddress['address_line_1'] ?? '') === '' && $customerDetails['address'] !== '') {
+            $shippingAddress['address_line_1'] = $customerDetails['address'];
+        }
+
+        return view('admin.orders.show', compact(
+            'order',
+            'timeline',
+            'customerOrdersCount',
+            'products',
+            'customerDetails',
+            'shippingAddress',
+            'availableStatusTransitions'
+        ));
     }
 
-    /**
-     * Show the form for creating a new order.
-     */
-    public function create(): View
+    public function updateDetails(Request $request, Order $order): RedirectResponse|JsonResponse
     {
-        $this->authorizeCreate();
-
-        $partners = Partner::query()->orderBy('name')->get();
-        $products = Product::query()->orderBy('name_ar')->get();
-
-        return view('admin.orders.create', [
-            'partners' => $partners,
-            'products' => $products,
+        $validated = $request->validate([
+            'customer_name' => ['required', 'string', 'max:255'],
+            'customer_email' => ['nullable', 'email', 'max:255'],
+            'customer_phone' => ['nullable', 'string', 'max:50'],
+            'customer_whatsapp' => ['nullable', 'string', 'max:50'],
+            'customer_address' => ['nullable', 'string', 'max:1000'],
+            'customer_notes' => ['nullable', 'string', 'max:2000'],
+            'shipping.address_line_1' => ['nullable', 'string', 'max:255'],
+            'shipping.address_line_2' => ['nullable', 'string', 'max:255'],
+            'shipping.city' => ['nullable', 'string', 'max:120'],
+            'shipping.state' => ['nullable', 'string', 'max:120'],
+            'shipping.postal_code' => ['nullable', 'string', 'max:40'],
+            'shipping.country' => ['nullable', 'string', 'max:120'],
         ]);
-    }
 
-    /**
-     * Store a newly created order.
-     */
-    public function store(StoreOrderRequest $request): RedirectResponse
-    {
-        $this->authorizeCreate();
+        $shippingPayload = $this->normalizeAddressPayload($validated['shipping'] ?? []);
+        if ($shippingPayload === [] && ! empty($validated['customer_address'])) {
+            $shippingPayload = [
+                'address_line_1' => trim((string) $validated['customer_address']),
+            ];
+        }
 
-        $validated = $request->validated();
-        $itemsData = $validated['items'];
+        $order->update([
+            'customer_name' => $validated['customer_name'],
+            'customer_email' => $validated['customer_email'] ?? null,
+            'customer_phone' => $validated['customer_phone'] ?? null,
+            'customer_whatsapp' => $validated['customer_whatsapp'] ?? null,
+            'customer_address' => $validated['customer_address'] ?? null,
+            'customer_notes' => $validated['customer_notes'] ?? null,
+            'shipping_address' => $shippingPayload,
+        ]);
 
-        $products = Product::query()
-            ->whereIn('id', collect($itemsData)->pluck('product_id'))
-            ->get()
-            ->keyBy('id');
+        ActivityLogger::log('updated', 'order', $order->id, ['section' => 'details']);
 
-        $payload = $this->buildItemsPayload($itemsData, $products);
-        $qtyMap = $this->buildQtyMapFromPayload($payload);
-
-        $order = DB::transaction(function () use ($validated, $payload, $qtyMap): Order {
-            $order = Order::query()->create([
-                'order_no' => $this->generateOrderNumber(),
-                'partner_id' => $validated['partner_id'],
-                'status' => $validated['status'],
-                'payment_status' => $validated['payment_status'],
-                'created_by' => Auth::id(),
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => __('Invoice and customer details updated.'),
+                'saved_at' => now()->toIso8601String(),
             ]);
-
-            foreach ($payload as $item) {
-                $order->items()->create($item);
-            }
-
-            $order->load('items');
-            $order->recalculateTotals();
-            $order->save();
-
-            if ($this->shouldAdjustStock($order->status)) {
-                $this->applyStockDelta($qtyMap, $order, __('Order created'));
-            }
-
-            return $order;
-        });
+        }
 
         return redirect()
             ->route('admin.orders.show', $order)
-            ->with('status', __('Order created successfully.'));
+            ->with('success', __('Invoice and customer details updated.'));
     }
 
-    /**
-     * Display the specified order details.
-     */
-    public function show(Order $order): View
+    public function updateItems(Request $request, Order $order): RedirectResponse
     {
-        $this->authorizeView();
-
-        $order->load(['items.product', 'partner', 'payments', 'creator']);
-
-        return view('admin.orders.show', [
-            'order' => $order,
+        $validated = $request->validate([
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.id' => ['nullable', 'integer'],
+            'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
+            'items.*.qty' => ['required', 'integer', 'min:1', 'max:999999'],
+            'items.*.price' => ['required', 'numeric', 'min:0'],
         ]);
-    }
 
-    /**
-     * Show the form for editing the specified order.
-     */
-    public function edit(Order $order): View
-    {
-        $this->authorizeUpdate();
+        $itemsPayload = collect($validated['items'])->values();
+        $duplicateIds = $itemsPayload->pluck('id')->filter()->duplicates();
+        if ($duplicateIds->isNotEmpty()) {
+            return back()
+                ->withInput()
+                ->withErrors(['items' => __('Duplicate invoice item rows are not allowed.')]);
+        }
 
-        $order->load(['items.product', 'partner']);
-        $partners = Partner::query()->orderBy('name')->get();
-        $products = Product::query()->orderBy('name_ar')->get();
+        $existingItemIds = $order->items()->pluck('id')->all();
+        $existingIdLookup = array_flip($existingItemIds);
 
-        return view('admin.orders.edit', [
-            'order' => $order,
-            'partners' => $partners,
-            'products' => $products,
-        ]);
-    }
-
-    /**
-     * Update the specified order.
-     */
-    public function update(UpdateOrderRequest $request, Order $order): RedirectResponse
-    {
-        $this->authorizeUpdate();
-
-        $validated = $request->validated();
-        $itemsData = $validated['items'];
-
-        $products = Product::query()
-            ->whereIn('id', collect($itemsData)->pluck('product_id'))
-            ->get()
-            ->keyBy('id');
-
-        $payload = $this->buildItemsPayload($itemsData, $products);
-
-        $oldQtyMap = $this->buildQtyMapFromItems($order->items()->get());
-        $newQtyMap = $this->buildQtyMapFromPayload($payload);
-
-        DB::transaction(function () use ($order, $validated, $payload, $oldQtyMap, $newQtyMap): void {
-            $originalStatus = $order->status;
-
-            $order->update([
-                'partner_id' => $validated['partner_id'],
-                'status' => $validated['status'],
-                'payment_status' => $validated['payment_status'],
-            ]);
-
-            $order->items()->delete();
-            foreach ($payload as $item) {
-                $order->items()->create($item);
+        foreach ($itemsPayload as $line) {
+            if (! empty($line['id']) && ! isset($existingIdLookup[(int) $line['id']])) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['items' => __('One of the invoice items is invalid.')]);
             }
+        }
 
-            $order->load('items');
-            $order->recalculateTotals();
-            $order->save();
+        DB::transaction(function () use ($order, $itemsPayload, $existingItemIds): void {
+            $keptIds = [];
 
-            $shouldStock = $this->shouldAdjustStock($order->status);
-            $wasStocked = $this->shouldAdjustStock($originalStatus);
+            foreach ($itemsPayload as $line) {
+                $productId = (int) $line['product_id'];
+                $qty = (int) $line['qty'];
+                $price = round((float) $line['price'], 2);
+                $lineTotal = round($qty * $price, 2);
 
-            if ($shouldStock) {
-                if ($wasStocked) {
-                    $delta = $this->mergeQtyDelta($newQtyMap, $oldQtyMap);
-                } else {
-                    $delta = $newQtyMap;
+                if (! empty($line['id'])) {
+                    $lineId = (int) $line['id'];
+                    $keptIds[] = $lineId;
+
+                    $order->items()->whereKey($lineId)->update([
+                        'product_id' => $productId,
+                        'qty' => $qty,
+                        'price' => $price,
+                        'cost' => $price,
+                        'line_total' => $lineTotal,
+                    ]);
+
+                    continue;
                 }
 
-                $this->applyStockDelta($delta, $order, __('Order updated'));
+                $item = $order->items()->create([
+                    'product_id' => $productId,
+                    'qty' => $qty,
+                    'price' => $price,
+                    'cost' => $price,
+                    'line_total' => $lineTotal,
+                ]);
+                $keptIds[] = $item->id;
             }
+
+            $idsToDelete = array_values(array_diff($existingItemIds, $keptIds));
+            if ($idsToDelete !== []) {
+                $order->items()->whereIn('id', $idsToDelete)->delete();
+            }
+
+            $order->load('items');
+            $order->recalculateTotals();
+            $order->save();
         });
+
+        ActivityLogger::log('updated', 'order', $order->id, ['section' => 'items']);
 
         return redirect()
             ->route('admin.orders.show', $order)
-            ->with('status', __('Order updated successfully.'));
+            ->with('success', __('Invoice items updated.'));
     }
 
-    /**
-     * Store a payment for the order.
-     */
-    public function storePayment(StorePaymentRequest $request, Order $order): RedirectResponse
+    public function updateStatus(UpdateOrderStatusRequest $request, Order $order): RedirectResponse
     {
-        $this->authorizeUpdate();
+        $nextStatus = (string) $request->validated('status');
 
-        $validated = $request->validated();
-
-        Payment::query()->create([
-            'order_id' => $order->id,
-            'amount' => $validated['amount'],
-            'method' => $validated['method'] ?? 'cash',
-            'paid_at' => $validated['paid_at'] ?? now(),
-        ]);
-
-        $this->refreshPaymentStatus($order);
-
-        return back()->with('status', __('Payment added successfully.'));
-    }
-
-    /**
-     * Print-friendly invoice view.
-     */
-    public function invoice(Order $order): View
-    {
-        $this->authorizeView();
-
-        $order->load(['items.product', 'partner', 'payments']);
-
-        return view('admin.orders.invoice', [
-            'order' => $order,
-        ]);
-    }
-
-    /**
-     * Update the status of the order.
-     */
-    public function updateStatus(Request $request, Order $order): RedirectResponse
-    {
-        $this->authorizeChangeStatus();
-
-        $validated = $request->validate([
-            'status' => ['required', 'in:' . implode(',', [
-                Order::STATUS_PENDING,
-                Order::STATUS_CONFIRMED,
-                Order::STATUS_SHIPPED,
-                Order::STATUS_COMPLETED,
-                Order::STATUS_CANCELED,
-            ])],
-        ]);
-
-        $originalStatus = $order->status;
-        $order->status = $validated['status'];
-        $order->save();
-
-        if (! $this->shouldAdjustStock($originalStatus) && $this->shouldAdjustStock($order->status)) {
-            $qtyMap = $this->buildQtyMapFromItems($order->items()->get());
-            $this->applyStockDelta($qtyMap, $order, __('Order status update'));
-        }
-
-        return back()->with('status', __('Order status updated.'));
-    }
-
-    /**
-     * Update payment status (MVP).
-     */
-    public function updatePaymentStatus(Request $request, Order $order): RedirectResponse
-    {
-        $this->authorizeChangeStatus();
-
-        $validated = $request->validate([
-            'payment_status' => ['required', 'in:' . implode(',', [
-                Order::PAYMENT_UNPAID,
-                Order::PAYMENT_PARTIAL,
-                Order::PAYMENT_PAID,
-            ])],
-        ]);
-
-        $order->payment_status = $validated['payment_status'];
-        $order->save();
-
-        return back()->with('status', __('Payment status updated.'));
-    }
-
-    protected function authorizeView(): void
-    {
-        /** @var \App\Models\User|null $user */
-        $user = Auth::user();
-        abort_unless($user && $user->can('orders.view'), 403);
-    }
-
-    protected function authorizeCreate(): void
-    {
-        /** @var \App\Models\User|null $user */
-        $user = Auth::user();
-        abort_unless($user && $user->can('orders.create'), 403);
-    }
-
-    protected function authorizeUpdate(): void
-    {
-        /** @var \App\Models\User|null $user */
-        $user = Auth::user();
-        abort_unless($user && $user->can('orders.update'), 403);
-    }
-
-    protected function authorizeChangeStatus(): void
-    {
-        /** @var \App\Models\User|null $user */
-        $user = Auth::user();
-        abort_unless($user && $user->can('orders.change_status'), 403);
-    }
-
-    protected function shouldAdjustStock(string $status): bool
-    {
-        return in_array($status, [Order::STATUS_CONFIRMED, Order::STATUS_COMPLETED], true);
-    }
-
-    /**
-     * @param array<int, array<string, mixed>> $itemsData
-     * @param \Illuminate\Support\Collection<int, \App\Models\Product> $products
-     * @return array<int, array<string, mixed>>
-     */
-    protected function buildItemsPayload(array $itemsData, Collection $products): array
-    {
-        return collect($itemsData)->map(function (array $item) use ($products): array {
-            /** @var \App\Models\Product $product */
-            $product = $products->get($item['product_id']);
-            $qty = (int) $item['qty'];
-            $price = (float) $item['price'];
-            $cost = (float) ($product?->cost ?? 0);
-            $lineTotal = $qty * $price;
-
-            return [
-                'product_id' => $product->id,
-                'qty' => $qty,
-                'price' => $price,
-                'cost' => $cost,
-                'line_total' => $lineTotal,
-            ];
-        })->values()->all();
-    }
-
-    /**
-     * @param \Illuminate\Support\Collection<int, \App\Models\OrderItem> $items
-     * @return array<int, int>
-     */
-    protected function buildQtyMapFromItems(Collection $items): array
-    {
-        return $items
-            ->groupBy('product_id')
-            ->map(fn (Collection $group) => (int) $group->sum('qty'))
-            ->all();
-    }
-
-    /**
-     * @param array<int, array<string, mixed>> $payload
-     * @return array<int, int>
-     */
-    protected function buildQtyMapFromPayload(array $payload): array
-    {
-        return collect($payload)
-            ->groupBy('product_id')
-            ->map(fn (Collection $group) => (int) $group->sum('qty'))
-            ->all();
-    }
-
-    /**
-     * @param array<int, int> $newQty
-     * @param array<int, int> $oldQty
-     * @return array<int, int>
-     */
-    protected function mergeQtyDelta(array $newQty, array $oldQty): array
-    {
-        $productIds = collect(array_keys($newQty))
-            ->merge(array_keys($oldQty))
-            ->unique();
-
-        $delta = [];
-
-        foreach ($productIds as $productId) {
-            $delta[$productId] = ($newQty[$productId] ?? 0) - ($oldQty[$productId] ?? 0);
-        }
-
-        return $delta;
-    }
-
-    /**
-     * @param array<int, int> $deltaByProduct
-     */
-    protected function applyStockDelta(array $deltaByProduct, Order $order, string $reason): void
-    {
-        $warehouse = Warehouse::query()->orderBy('id')->first();
-
-        if (! $warehouse) {
-            throw ValidationException::withMessages([
-                'warehouse_id' => __('Please create a warehouse before adjusting stock.'),
-            ]);
-        }
-
-        foreach ($deltaByProduct as $productId => $delta) {
-            if ($delta === 0) {
-                continue;
-            }
-
-            /** @var \App\Models\Product $product */
-            $product = Product::query()->findOrFail($productId);
-            $stock = ProductStock::query()->firstOrCreate(
-                ['product_id' => $productId, 'warehouse_id' => $warehouse->id],
-                ['qty' => 0],
-            );
-
-            if ($delta > 0 && $stock->qty < $delta) {
-                throw ValidationException::withMessages([
-                    'items' => __('Insufficient stock for :product.', ['product' => $product->name]),
+        if (! $order->transitionTo($nextStatus)) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->withErrors([
+                    'status' => __('Invalid status transition from :from to :to.', [
+                        'from' => __(ucfirst($order->normalized_status)),
+                        'to' => __(ucfirst(Order::normalizeStatus($nextStatus))),
+                    ]),
                 ]);
-            }
-
-            $direction = $delta > 0 ? 'out' : 'in';
-            $qty = abs($delta);
-
-            $stock->qty = $stock->qty + ($direction === 'out' ? -$qty : $qty);
-            $stock->save();
-
-            if ($direction === 'out') {
-                $product->decrement('stock', $qty);
-            } else {
-                $product->increment('stock', $qty);
-            }
-
-            StockMovement::query()->create([
-                'product_id' => $productId,
-                'warehouse_id' => $warehouse->id,
-                'direction' => $direction,
-                'qty' => $qty,
-                'reason' => trim($reason . ' - ' . $order->order_no),
-            ]);
-        }
-    }
-
-    protected function generateOrderNumber(): string
-    {
-        do {
-            $orderNo = sprintf('ORD-%s-%s', now()->format('Ymd'), Str::upper(Str::random(4)));
-        } while (Order::query()->where('order_no', $orderNo)->exists());
-
-        return $orderNo;
-    }
-
-    protected function refreshPaymentStatus(Order $order): void
-    {
-        $paid = (float) $order->payments()->sum('amount');
-        $total = (float) $order->total;
-
-        if ($paid <= 0) {
-            $order->payment_status = Order::PAYMENT_UNPAID;
-        } elseif ($paid >= $total) {
-            $order->payment_status = Order::PAYMENT_PAID;
-        } else {
-            $order->payment_status = Order::PAYMENT_PARTIAL;
         }
 
         $order->save();
+
+        ActivityLogger::log('updated', 'order', $order->id, ['status' => $order->status]);
+
+        return redirect()
+            ->route('admin.orders.show', $order)
+            ->with('success', __('Order status updated.'));
+    }
+
+    /**
+     * Remove empty address keys before persisting.
+     *
+     * @param array<string, mixed> $address
+     * @return array<string, string>
+     */
+    private function normalizeAddressPayload(array $address): array
+    {
+        return collect($address)
+            ->mapWithKeys(function ($value, $key): array {
+                return [(string) $key => trim((string) $value)];
+            })
+            ->filter(fn(string $value) => $value !== '')
+            ->all();
     }
 }

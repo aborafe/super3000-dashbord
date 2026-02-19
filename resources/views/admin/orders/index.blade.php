@@ -3,160 +3,137 @@
 @section('title', __('Orders'))
 
 @section('content')
-    @include('admin.components.flash')
-
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-        <div>
-            <h4 class="mb-1">{{ __('Orders') }}</h4>
-            <p class="text-muted mb-0">{{ __('Track and manage customer orders.') }}</p>
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="fw-bold py-3 mb-0">{{ __('Orders') }}</h4>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb breadcrumb-style1 mb-0">
+                        <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">{{ __('Dashboard') }}</a></li>
+                        <li class="breadcrumb-item active">{{ __('Orders') }}</li>
+                    </ol>
+                </nav>
+            </div>
         </div>
 
-        @can('orders.create')
-            <a href="{{ route('admin.orders.create') }}" class="btn btn-primary">
-                <i class="bx bx-plus me-1"></i>{{ __('Create order') }}
-            </a>
-        @endcan
-    </div>
-
-    <div class="card mb-4">
-        <h5 class="card-header">{{ __('Filters') }}</h5>
-        <div class="card-body">
-            <form method="GET" action="{{ route('admin.orders.index') }}">
-                <div class="row g-3">
-                    <div class="col-12 col-md-3">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title mb-4">{{ __('Filter') }}</h5>
+                <form method="GET" class="row g-3">
+                    <div class="col-md-6">
                         <label class="form-label">{{ __('Status') }}</label>
                         <select name="status" class="form-select">
                             <option value="">{{ __('All') }}</option>
-                            @foreach ([
-                                \App\Models\Order::STATUS_PENDING => __('Pending'),
-                                \App\Models\Order::STATUS_CONFIRMED => __('Confirmed'),
-                                \App\Models\Order::STATUS_SHIPPED => __('Shipped'),
-                                \App\Models\Order::STATUS_COMPLETED => __('Completed'),
-                                \App\Models\Order::STATUS_CANCELED => __('Canceled'),
-                            ] as $value => $label)
-                                <option value="{{ $value }}" @selected(($filters['status'] ?? null) === $value)>
-                                    {{ $label }}
-                                </option>
-                            @endforeach
+                            <option value="pending" @selected($status === 'pending')>{{ __('Pending') }}</option>
+                            <option value="approved" @selected($status === 'approved')>{{ __('Approved') }}</option>
+                            <option value="shipped" @selected($status === 'shipped')>{{ __('Shipped') }}</option>
+                            <option value="delivered" @selected($status === 'delivered')>{{ __('Delivered') }}</option>
+                            <option value="cancelled" @selected($status === 'cancelled')>{{ __('Cancelled') }}</option>
+                            <option value="returned" @selected($status === 'returned')>{{ __('Returned') }}</option>
                         </select>
                     </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ __('Search') }}</label>
+                        <input type="text" name="q" value="{{ $search }}" class="form-control"
+                            placeholder="{{ __('Order No') }}" />
+                    </div>
+                    <div class="col-12 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">{{ __('Filter') }}</button>
+                        <a href="{{ route('admin.orders.index') }}"
+                            class="btn btn-outline-secondary">{{ __('Reset') }}</a>
+                    </div>
+                </form>
+            </div>
+        </div>
 
-                    <div class="col-12 col-md-3">
-                        <label class="form-label">{{ __('Payment status') }}</label>
-                        <select name="payment_status" class="form-select">
-                            <option value="">{{ __('All') }}</option>
-                            @foreach ([
-                                \App\Models\Order::PAYMENT_UNPAID => __('Unpaid'),
-                                \App\Models\Order::PAYMENT_PARTIAL => __('Partial'),
-                                \App\Models\Order::PAYMENT_PAID => __('Paid'),
-                            ] as $value => $label)
-                                <option value="{{ $value }}" @selected(($filters['payment_status'] ?? null) === $value)>
-                                    {{ $label }}
-                                </option>
-                            @endforeach
+        @include('admin.components.table-stats-strip')
+
+        <div class="card">
+            <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div class="d-flex align-items-center gap-2">
+                    <label class="d-flex align-items-center">
+                        {{ __('Showing') }}
+                        <select name="per_page" class="form-select form-select-sm mx-2" form="orders-table-form">
+                            <option value="10" @selected($perPage === 10)>10</option>
+                            <option value="25" @selected($perPage === 25)>25</option>
+                            <option value="50" @selected($perPage === 50)>50</option>
                         </select>
-                    </div>
-
-                    <div class="col-12 col-md-3">
-                        <label class="form-label">{{ __('Customer') }}</label>
-                        <select name="partner_id" class="form-select">
-                            <option value="">{{ __('All') }}</option>
-                            @foreach ($partners as $partner)
-                                <option value="{{ $partner->id }}" @selected(($filters['partner_id'] ?? null) == $partner->id)>
-                                    {{ $partner->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="col-6 col-md-1">
-                        <label class="form-label">{{ __('From') }}</label>
-                        <input type="date" name="from" value="{{ $filters['from'] ?? '' }}" class="form-control">
-                    </div>
-
-                    <div class="col-6 col-md-1">
-                        <label class="form-label">{{ __('To') }}</label>
-                        <input type="date" name="to" value="{{ $filters['to'] ?? '' }}" class="form-control">
-                    </div>
-
-                    <div class="col-12 col-md-1 d-grid">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bx bx-filter me-1"></i>{{ __('Filter') }}
-                        </button>
-                    </div>
+                        {{ __('results') }}
+                    </label>
                 </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header d-flex align-items-center justify-content-between">
-            <h5 class="mb-0">{{ __('Orders') }}</h5>
-            <span class="text-muted small">{{ __('Total: :count', ['count' => $orders->total()]) }}</span>
-        </div>
-        <div class="table-responsive text-nowrap">
-            <table class="table">
-                <thead class="table-light">
-                    <tr>
-                        <th>{{ __('Order #') }}</th>
-                        <th>{{ __('Customer') }}</th>
-                        <th>{{ __('Status') }}</th>
-                        <th>{{ __('Payment') }}</th>
-                        <th>{{ __('Total') }}</th>
-                        <th>{{ __('Profit') }}</th>
-                        <th>{{ __('Created at') }}</th>
-                        <th class="text-end">{{ __('Actions') }}</th>
-                    </tr>
-                </thead>
-                <tbody class="table-border-bottom-0">
-                    @forelse ($orders as $order)
-                        <tr>
-                            <td class="text-muted text-uppercase small">{{ $order->order_no }}</td>
-                            <td>{{ $order->partner?->name ?? '—' }}</td>
-                            <td>
-                                <span @class([
-                                    'badge',
-                                    'bg-label-warning' => $order->status === \App\Models\Order::STATUS_PENDING,
-                                    'bg-label-primary' => $order->status === \App\Models\Order::STATUS_CONFIRMED,
-                                    'bg-label-info' => $order->status === \App\Models\Order::STATUS_SHIPPED,
-                                    'bg-label-success' => $order->status === \App\Models\Order::STATUS_COMPLETED,
-                                    'bg-label-danger' => $order->status === \App\Models\Order::STATUS_CANCELED,
-                                ])>
-                                    {{ ucfirst($order->status) }}
-                                </span>
-                            </td>
-                            <td>
-                                <span @class([
-                                    'badge',
-                                    'bg-label-danger' => $order->payment_status === \App\Models\Order::PAYMENT_UNPAID,
-                                    'bg-label-warning' => $order->payment_status === \App\Models\Order::PAYMENT_PARTIAL,
-                                    'bg-label-success' => $order->payment_status === \App\Models\Order::PAYMENT_PAID,
-                                ])>
-                                    {{ ucfirst($order->payment_status) }}
-                                </span>
-                            </td>
-                            <td>{{ number_format($order->total, 2) }}</td>
-                            <td>{{ number_format($order->profit, 2) }}</td>
-                            <td class="text-muted small">{{ $order->created_at?->format('Y-m-d H:i') }}</td>
-                            <td class="text-end">
-                                <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-icon btn-outline-primary">
-                                    <i class="bx bx-show"></i>
-                                </a>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
-                                {{ __('No orders found.') }}
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-
-        <div class="card-footer">
-            {{ $orders->links('pagination::bootstrap-5') }}
+            </div>
+            <div class="table-responsive text-nowrap">
+                <form id="orders-table-form" method="GET">
+                    <input type="hidden" name="status" value="{{ $status }}">
+                    <input type="hidden" name="q" value="{{ $search }}">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>{{ __('Order No') }}</th>
+                                <th>{{ __('Customer') }}</th>
+                                <th>{{ __('Status') }}</th>
+                                <th>{{ __('Paid') }}</th>
+                                <th>{{ __('Due') }}</th>
+                                <th>{{ __('Total') }}</th>
+                                <th>{{ __('Date') }}</th>
+                                <th>{{ __('Actions') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($orders as $order)
+                                @php
+                                    $normalizedStatus = $order->normalized_status;
+                                    $badge = match ($normalizedStatus) {
+                                        'approved' => 'bg-label-success',
+                                        'shipped' => 'bg-label-info',
+                                        'delivered' => 'bg-label-primary',
+                                        'returned' => 'bg-label-secondary',
+                                        'cancelled' => 'bg-label-danger',
+                                        default => 'bg-label-warning',
+                                    };
+                                @endphp
+                                <tr>
+                                    <td>
+                                        <a href="{{ route('admin.orders.show', $order) }}"
+                                            class="text-body fw-medium">{{ $order->order_no }}</a>
+                                    </td>
+                                    <td>
+                                        @if ($order->customer)
+                                            <a href="{{ route('admin.sales.customers.edit', $order->customer) }}"
+                                                class="text-body">{{ $order->customer->name }}</a>
+                                        @else
+                                            <span>-</span>
+                                        @endif
+                                    </td>
+                                    <td><span class="badge {{ $badge }}">{{ __(ucfirst($normalizedStatus)) }}</span></td>
+                                    <td>${{ number_format($order->paid_amount, 2) }}</td>
+                                    <td>${{ number_format($order->due_amount, 2) }}</td>
+                                    <td>${{ number_format($order->total, 2) }}</td>
+                                    <td>{{ $order->created_at?->format('Y-m-d') }}</td>
+                                    <td>
+                                        <a href="{{ route('admin.orders.show', $order) }}"
+                                            class="btn btn-sm btn-outline-secondary">
+                                            <i class="icon-base bx bx-show"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted">{{ __('No orders found.') }}</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </form>
+            </div>
+            <div class="card-footer d-flex flex-wrap justify-content-between align-items-center">
+                <small class="text-muted">
+                    {{ __('Showing') }} {{ $orders->firstItem() ?? 0 }} {{ __('to') }}
+                    {{ $orders->lastItem() ?? 0 }}
+                    {{ __('of') }} {{ $orders->total() }} {{ __('results') }}
+                </small>
+                {{ $orders->links('pagination::bootstrap-5') }}
+            </div>
         </div>
     </div>
 @endsection

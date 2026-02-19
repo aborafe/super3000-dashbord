@@ -18,21 +18,41 @@ class OrderResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
+            'id' => (string) $this->id,
             'order_no' => $this->order_no,
-            'status' => $this->status,
-            'payment_status' => $this->payment_status,
+            'status' => \App\Models\Order::normalizeStatus((string) $this->status),
+            'subtotal' => (float) $this->subtotal,
             'total' => (float) $this->total,
-            'cost_total' => (float) $this->cost_total,
-            'profit' => (float) $this->profit,
+            'customer_name' => (string) ($this->customer_name ?: ($this->customer?->name ?? '')),
+            'customer_email' => (string) ($this->customer_email ?: ($this->customer?->email ?? '')),
+            'customer_phone' => (string) ($this->customer_phone ?: ($this->customer?->phone ?? '')),
+            'customer_whatsapp' => (string) ($this->customer_whatsapp ?? ''),
+            'customer_address' => (string) ($this->customer_address ?? ''),
+            'customer_notes' => (string) ($this->customer_notes ?? ''),
+            'shipping_address' => is_array($this->shipping_address) ? $this->shipping_address : null,
+            'invoice_adjustments' => $this->invoice_adjustments,
+            'adjustments_total' => (float) $this->adjustments_total,
+            'total_with_adjustments' => (float) $this->total_with_adjustments,
+            'paid_amount' => (float) $this->paid_amount,
+            'due_amount' => (float) $this->due_amount,
             'created_at' => optional($this->created_at)?->toIso8601String(),
-            'partner' => $this->whenLoaded('partner', function () {
+            'customer' => $this->whenLoaded('customer', function () {
                 return [
-                    'id' => $this->partner?->id,
-                    'name' => $this->partner?->name,
+                    'id' => $this->customer?->id !== null ? (string) $this->customer->id : null,
+                    'name' => $this->customer?->name,
+                    'email' => $this->customer?->email,
                 ];
             }),
             'items' => OrderItemResource::collection($this->whenLoaded('items')),
+            'payments' => $this->whenLoaded('payments', function () {
+                return $this->payments->map(function ($payment) {
+                    return [
+                        'id' => (string) $payment->id,
+                        'amount' => (float) $payment->amount,
+                        'paid_at' => optional($payment->paid_at ?? $payment->created_at)?->toIso8601String(),
+                    ];
+                })->values();
+            }),
         ];
     }
 }
