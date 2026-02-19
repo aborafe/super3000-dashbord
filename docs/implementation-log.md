@@ -67,3 +67,32 @@ Started: 2026-02-19
   - Realtime delivery still waiting CP5 (`BROADCAST_CONNECTION=log` before runtime switch).
 - Rollback:
   - Use branch tag `CP2-schema-state-machine`.
+
+### CP3-api-v2
+- Status: completed
+- Summary:
+  - Launched `api/v2` surface for customers:
+    - `POST /api/v2/auth/login`
+    - `POST /api/v2/auth/logout`
+    - `GET /api/v2/me`
+    - `GET /api/v2/categories`
+    - `GET /api/v2/products`
+    - `GET /api/v2/products/{product}`
+    - `GET|POST /api/v2/orders` (+ ownership protection remains)
+    - notifications endpoints (`list/unread/read/read-all`)
+  - Disabled `api/v1/*` immediately with `410 Gone` response and migration message.
+  - Removed registration path from active API contract (no `/api/v2/auth/register`).
+  - Added idempotency for order creation:
+    - `Idempotency-Key` header required on `/api/v2/orders`.
+    - request replay with same key returns existing order safely.
+    - DB unique guard added on `(customer_id, idempotency_key)`.
+  - Added lightweight V2 controller namespace wrappers for stable API versioning structure.
+  - Updated tests from v1 to v2 and added v1 deprecation + idempotency coverage.
+- Validation:
+  - `php artisan migrate --force` => applied `000009` idempotency migration.
+  - `php artisan test` => `51 passed`.
+- Risks observed:
+  - Mobile clients must switch immediately to `/api/v2/*` (v1 hard-stopped by design).
+  - Realtime infra switch to Reverb still pending CP5.
+- Rollback:
+  - Use branch tag `CP3-api-v2`.

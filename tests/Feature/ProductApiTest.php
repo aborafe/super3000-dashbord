@@ -14,7 +14,7 @@ class ProductApiTest extends TestCase
 
     public function test_product_listing_requires_authentication(): void
     {
-        $response = $this->getJson('/api/v1/products');
+        $response = $this->getJson('/api/v2/products');
 
         $response->assertStatus(401);
         $response->assertJsonPath('status', false);
@@ -26,7 +26,7 @@ class ProductApiTest extends TestCase
         $customer = Customer::factory()->create();
         Product::factory()->count(2)->create(['is_active' => true]);
 
-        $response = $this->actingAsCustomerApi($customer)->getJson('/api/v1/products?per_page=20');
+        $response = $this->actingAsCustomerApi($customer)->getJson('/api/v2/products?per_page=20');
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
@@ -69,7 +69,7 @@ class ProductApiTest extends TestCase
             'category_id' => $category->id,
         ];
 
-        $response = $this->actingAsCustomerApi($customer)->postJson('/api/v1/products', $payload);
+        $response = $this->actingAsCustomerApi($customer)->postJson('/api/v2/products', $payload);
 
         $response->assertStatus(405);
         $response->assertJsonPath('meta.message', 'Method not allowed');
@@ -92,7 +92,7 @@ class ProductApiTest extends TestCase
             'category_id' => $category->id,
         ];
 
-        $response = $this->actingAsCustomerApi($customer)->putJson("/api/v1/products/{$product->id}", $payload);
+        $response = $this->actingAsCustomerApi($customer)->putJson("/api/v2/products/{$product->id}", $payload);
 
         $response->assertStatus(405);
         $response->assertJsonPath('meta.message', 'Method not allowed');

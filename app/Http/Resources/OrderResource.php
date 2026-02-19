@@ -21,6 +21,10 @@ class OrderResource extends JsonResource
             'id' => (string) $this->id,
             'order_no' => $this->order_no,
             'status' => \App\Models\Order::normalizeStatus((string) $this->status),
+            'tracking' => [
+                'order_no' => $this->order_no,
+                'idempotency_key' => $this->idempotency_key,
+            ],
             'subtotal' => (float) $this->subtotal,
             'total' => (float) $this->total,
             'customer_name' => (string) ($this->customer_name ?: ($this->customer?->name ?? '')),

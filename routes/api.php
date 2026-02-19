@@ -1,20 +1,34 @@
 <?php
 
-use App\Http\Controllers\Api\V1\CustomerAuthController;
-use App\Http\Controllers\Api\V1\CategoryController;
-use App\Http\Controllers\Api\V1\NotificationController;
-use App\Http\Controllers\Api\V1\OrderController;
-use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V2\CategoryController;
+use App\Http\Controllers\Api\V2\CustomerAuthController;
+use App\Http\Controllers\Api\V2\NotificationController;
+use App\Http\Controllers\Api\V2\OrderController;
+use App\Http\Controllers\Api\V2\ProductController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
+    Route::any('{path?}', function () {
+        return response()->json([
+            'status' => false,
+            'data' => null,
+            'meta' => [
+                'message' => 'API v1 is deprecated. Please migrate to /api/v2.',
+            ],
+            'errors' => [
+                [
+                    'field' => null,
+                    'message' => 'Use /api/v2/* endpoints.',
+                ],
+            ],
+        ], 410);
+    })->where('path', '.*');
+});
+
+Route::prefix('v2')->name('api.v2.')->group(function () {
     Route::post('auth/login', [CustomerAuthController::class, 'login'])
         ->middleware('throttle:api-login')
         ->name('auth.login');
-
-    Route::post('auth/register', [CustomerAuthController::class, 'register'])
-        ->middleware('throttle:api-sensitive')
-        ->name('auth.register');
 
     Route::middleware(['auth:sanctum', 'customer.token'])->group(function () {
         Route::post('auth/logout', [CustomerAuthController::class, 'logout'])
