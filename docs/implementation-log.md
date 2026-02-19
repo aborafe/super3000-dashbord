@@ -168,3 +168,20 @@ Started: 2026-02-19
   - CP5 composer SSL blocker still prevents full Reverb package activation in this environment.
 - Rollback:
   - Use branch tag `CP6-dashboard-permissions`.
+
+### CP7-production-hardening
+- Status: completed
+- Summary:
+  - Hardened seed strategy for non-local environments:
+    - `DatabaseSeeder` now skips demo/reference/activity seeders outside `local/testing`.
+    - `AdminUserSeeder` now requires explicit `ADMIN_SEED_PASSWORD` in non-local environments.
+  - Added `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD` to `.env.example`.
+  - Replaced outdated API documentation with the current v2-only contract (`API_DOCUMENTATION.md`).
+  - Replaced legacy README with project-specific operational guidance.
+  - Added production deployment and rollback runbook (`docs/production-runbook.md`).
+- Validation:
+  - `php artisan test` => `52 passed`.
+- Risks observed:
+  - CP5 dependency blocker remains for full Reverb package activation due local Composer SSL CA issue.
+- Rollback:
+  - Use branch tag `CP7-production-hardening`.

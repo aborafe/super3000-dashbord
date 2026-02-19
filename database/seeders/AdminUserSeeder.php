@@ -14,12 +14,22 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
+        $isSafeEnv = app()->environment(['local', 'testing']);
+        $email = trim((string) env('ADMIN_SEED_EMAIL', 'admin@super3000.test'));
+        $rawPassword = (string) env('ADMIN_SEED_PASSWORD', '');
+
+        if (! $isSafeEnv && $rawPassword === '') {
+            $this->command?->warn('AdminUserSeeder skipped: set ADMIN_SEED_PASSWORD for non-local environments.');
+
+            return;
+        }
+
         /** @var \App\Models\User $admin */
         $admin = User::query()->firstOrCreate(
-            ['email' => 'admin@super3000.test'],
+            ['email' => $email !== '' ? $email : 'admin@super3000.test'],
             [
                 'name' => 'Admin',
-                'password' => 'password',
+                'password' => $rawPassword !== '' ? $rawPassword : 'password',
             ]
         );
 
