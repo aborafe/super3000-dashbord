@@ -4,9 +4,10 @@ namespace App\Notifications;
 
 use App\Models\Order;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class OrderStatusChanged extends Notification
+class OrderStatusChanged extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -19,7 +20,7 @@ class OrderStatusChanged extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'broadcast'];
     }
 
     public function toDatabase(object $notifiable): array

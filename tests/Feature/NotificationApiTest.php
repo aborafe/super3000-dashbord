@@ -115,7 +115,11 @@ class NotificationApiTest extends TestCase
         Notification::assertSentTo(
             $user,
             AdminMessageNotification::class,
-            fn (AdminMessageNotification $notification, array $channels): bool => $channels === ['database']
+            function (AdminMessageNotification $notification, array $channels): bool {
+                sort($channels);
+
+                return $channels === ['broadcast', 'database'];
+            }
         );
     }
 

@@ -120,3 +120,27 @@ Started: 2026-02-19
   - Old data integrations that write directly to `products.stock_qty` must move to service/warehouse movements.
 - Rollback:
   - Use branch tag `CP4-inventory-master-sync`.
+
+### CP5-realtime-notifications
+- Status: completed (with environment blocker noted)
+- Summary:
+  - Enabled queued notifications for realtime delivery (`ShouldQueue`) on:
+    - `AdminMessageNotification`
+    - `OrderStatusChanged`
+  - Enabled broadcast delivery for both users and customers.
+  - Added explicit user notification channel mapping (`user.{id}`) and strict typed channel authorization.
+  - Added web broadcast auth route (`/broadcasting/auth`) while preserving API broadcast auth for customers (`/api/broadcasting/auth`).
+  - Fixed dashboard notifications dropdown rendering bug (`</li>1` artifact).
+  - Added websocket-first notification updates in dashboard (`Echo/Pusher`) with polling fallback only when realtime is disconnected/unavailable.
+  - Added realtime connection metadata to notifications dropdown DOM for runtime bootstrap.
+  - Set `.env.example` default broadcaster to `reverb`.
+- Validation:
+  - `php artisan route:list` confirms both broadcast auth endpoints exist.
+  - `php artisan test --filter=NotificationApiTest` => pass.
+  - `php artisan test --filter=AdminNotificationsTest` => pass.
+  - `php artisan test` => `51 passed`.
+- Risks observed:
+  - Composer SSL/CA issue (`curl error 60`) blocks installing `laravel/reverb` and `pusher/pusher-php-server` in this environment.
+  - Reverb runtime can only be fully enabled after fixing Composer CA and installing missing broadcast packages.
+- Rollback:
+  - Use branch tag `CP5-realtime-notifications`.

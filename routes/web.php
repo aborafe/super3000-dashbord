@@ -19,11 +19,16 @@ use App\Http\Controllers\Admin\WarehouseController;
 use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return redirect('/' . config('app.locale', 'en'));
 });
+
+Broadcast::routes([
+    'middleware' => ['web', 'auth'],
+]);
 
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'create'])->name('login');
