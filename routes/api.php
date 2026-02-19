@@ -1,66 +1,54 @@
 <?php
 
-use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CustomerAuthController;
+use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\ProductController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you may register API routes for your application.
-| All routes in this file will be prefixed with /api and typically
-| will be stateless, protected later with Sanctum.
-|
-*/
+Route::prefix('v1')->name('api.v1.')->group(function () {
+    Route::post('auth/login', [CustomerAuthController::class, 'login'])
+        ->middleware('throttle:api-login')
+        ->name('auth.login');
 
-Route::get('/health', function (Request $request) {
-    return response()->json([
-        'data' => ['status' => 'ok'],
-        'meta' => ['message' => 'API is up'],
-    ]);
-});
+    Route::post('auth/register', [CustomerAuthController::class, 'register'])
+        ->middleware('throttle:api-sensitive')
+        ->name('auth.register');
 
-Route::prefix('v1')
-    ->name('api.v1.')
-    ->group(function (): void {
-        // Auth
-        Route::post('auth/login', [AuthController::class, 'login'])
-            ->name('auth.login');
+    Route::middleware(['auth:sanctum', 'customer.token'])->group(function () {
+        Route::post('auth/logout', [CustomerAuthController::class, 'logout'])
+            ->middleware('throttle:api-sensitive')
+            ->name('auth.logout');
+        Route::get('me', [CustomerAuthController::class, 'me'])
+            ->name('auth.me');
 
-        Route::middleware('auth:sanctum')->group(function (): void {
-            Route::post('auth/logout', [AuthController::class, 'logout'])
-                ->name('auth.logout');
+        Route::get('categories', [CategoryController::class, 'index'])
+            ->name('categories.index');
 
-            Route::get('me', function (Request $request) {
-                /** @var \App\Models\User $user */
-                $user = $request->user();
+        Route::get('products', [ProductController::class, 'index'])
+            ->name('products.index');
+        Route::get('products/{product}', [ProductController::class, 'show'])
+            ->name('products.show');
 
-                return response()->json([
-                    'data' => [
-                        'id' => $user->id,
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'roles' => $user->getRoleNames(),
-                        'permissions' => $user->getAllPermissions()->pluck('name'),
-                    ],
-                    'meta' => [
-                        'message' => 'Authenticated user.',
-                    ],
-                ]);
-            })->name('me');
+        Route::get('orders', [OrderController::class, 'index'])
+            ->name('orders.index');
+        Route::get('orders/{order}', [OrderController::class, 'show'])
+            ->name('orders.show');
+        Route::post('orders', [OrderController::class, 'store'])
+            ->middleware('throttle:api-sensitive')
+            ->name('orders.store');
 
-            // Products
-            Route::get('products', [ProductController::class, 'index'])
-                ->name('products.index');
-            Route::get('products/{product}', [ProductController::class, 'show'])
-                ->name('products.show');            // Orders
-            Route::get('orders', [OrderController::class, 'index'])
-                ->name('orders.index');
-            Route::get('orders/{order}', [OrderController::class, 'show'])
-                ->name('orders.show');
-        });
+        Route::get('notifications', [NotificationController::class, 'index'])
+            ->name('notifications.index');
+        Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount'])
+            ->name('notifications.unread-count');
+        Route::patch('notifications/read-all', [NotificationController::class, 'markAllAsRead'])
+            ->middleware('throttle:api-sensitive')
+            ->name('notifications.read-all');
+        Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead'])
+            ->middleware('throttle:api-sensitive')
+            ->whereUuid('notification')
+            ->name('notifications.read');
     });
+});

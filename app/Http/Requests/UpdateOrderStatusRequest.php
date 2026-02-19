@@ -5,17 +5,16 @@ namespace App\Http\Requests;
 use App\Models\Order;
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreOrderRequest extends FormRequest
+class UpdateOrderStatusRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return (bool) $this->user()?->can('orders.update');
+        return (bool) $this->user()?->can('orders.change_status');
     }
 
     public function rules(): array
     {
         return [
-            'customer_id' => ['required', 'exists:customers,id'],
             'status' => ['required', 'in:' . implode(',', [
                 Order::STATUS_PENDING,
                 Order::STATUS_SHIPPED,

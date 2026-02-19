@@ -9,7 +9,7 @@ class UpdateProductRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('products.update') ?? false;
+        return (bool) $this->user()?->can('products.update');
     }
 
     public function rules(): array
@@ -17,8 +17,7 @@ class UpdateProductRequest extends FormRequest
         $productId = $this->route('product')?->id ?? null;
 
         return [
-            'name_ar' => ['required_without:name_en', 'nullable', 'string', 'max:255'],
-            'name_en' => ['required_without:name_ar', 'nullable', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255'],
             'sku' => [
                 'required',
                 'string',
@@ -26,11 +25,21 @@ class UpdateProductRequest extends FormRequest
                 Rule::unique('products', 'sku')->ignore($productId),
             ],
             'price' => ['required', 'numeric', 'min:0'],
-            'cost' => ['nullable', 'numeric', 'min:0'],
-            'stock' => ['required', 'integer', 'min:0'],
-            'status' => ['required', 'in:active,inactive'],
+            'stock_qty' => ['required', 'integer', 'min:0'],
+            'is_active' => ['required', 'boolean'],
             'category_id' => ['required', 'exists:categories,id'],
-            'image' => ['nullable', 'image', 'max:2048'],
+            // new fields
+            'brand' => ['nullable', 'string', 'max:255'],
+            'made_in' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'cover_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'images.*' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'deleted_image_ids' => ['array'],
+            'deleted_image_ids.*' => ['integer', 'exists:product_images,id'],
+            'images_orders' => ['array'],
+            'images_orders.*.id' => ['required_with:images_orders.*.sort_order', 'integer', 'exists:product_images,id'],
+            'images_orders.*.sort_order' => ['required_with:images_orders.*.id', 'integer'],
+            'remove_cover' => ['boolean'],
         ];
     }
 }
