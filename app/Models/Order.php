@@ -7,7 +7,27 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $order_no
+ * @property int|null $customer_id
+ * @property int|null $user_id
+ * @property string $status
+ * @property string|null $customer_notes
+ * @property array<string, mixed>|null $shipping_address
+ * @property array<string, mixed>|null $billing_address
+ * @property string|null $billing_payment_method
+ * @property float|string $subtotal
+ * @property float|string $total
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read string $normalized_status
+ * @property-read float $paid_amount
+ * @property-read float $due_amount
+ * @property-read float $items_discount_total
+ */
 class Order extends Model
 {
     use HasFactory;
@@ -25,11 +45,6 @@ class Order extends Model
         'idempotency_key',
         'user_id',
         'customer_id',
-        'customer_name',
-        'customer_email',
-        'customer_phone',
-        'customer_whatsapp',
-        'customer_address',
         'customer_notes',
         'status',
         'subtotal',
@@ -113,6 +128,11 @@ class Order extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function paymentAllocations(): HasMany
+    {
+        return $this->hasMany(PaymentAllocation::class);
+    }
+
     /**
      * Recalculate totals based on items.
      */
@@ -127,12 +147,24 @@ class Order extends Model
     // computed attributes for payment tracking
     public function getPaidAmountAttribute(): float
     {
-        return (float) $this->payments()->sum('amount');
+        if (array_key_exists('paid_amount', $this->attributes)) {
+            return (float) $this->attributes['paid_amount'];
+        }
+
+        if ($this->relationLoaded('paymentAllocations')) {
+            return (float) $this->paymentAllocations->sum(fn (PaymentAllocation $allocation): float => (float) $allocation->amount);
+        }
+
+        return (float) $this->paymentAllocations()->sum('amount');
     }
 
     public function getDueAmountAttribute(): float
     {
-        return (float) ($this->total - $this->paid_amount);
+        if ($this->normalized_status === self::STATUS_CANCELLED) {
+            return 0.0;
+        }
+
+        return max(0, (float) $this->total - $this->paid_amount);
     }
 
     public function getAdjustmentsTotalAttribute(): float
@@ -152,5 +184,27 @@ class Order extends Model
     public function getTotalWithAdjustmentsAttribute(): float
     {
         return (float) $this->total;
+    }
+
+    public function getItemsDiscountTotalAttribute(): float
+    {
+        if (array_key_exists('items_discount_total', $this->attributes)) {
+            return (float) $this->attributes['items_discount_total'];
+        }
+
+        if ($this->relationLoaded('items')) {
+            return round(
+                (float) $this->items->sum(fn (OrderItem $item): float => (float) $item->discount_total),
+                2
+            );
+        }
+
+        $discount = $this->items()
+            ->selectRaw(
+                'COALESCE(SUM(CASE WHEN COALESCE(base_price, price) > price THEN (COALESCE(base_price, price) - price) * qty ELSE 0 END), 0) as discount_total'
+            )
+            ->value('discount_total');
+
+        return round((float) $discount, 2);
     }
 }

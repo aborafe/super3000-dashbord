@@ -1,0 +1,111 @@
+/* =========================================================
+   RTL Mobile Offcanvas Fix for Sneat-like layout
+   ========================================================= */
+
+html[dir="rtl"] #layout-menu {
+  left: auto !important;
+  right: 0 !important;
+}
+
+html[dir="rtl"] .layout-overlay,
+html[dir="rtl"] [data-layout-overlay] {
+  position: fixed !important;
+  inset: 0 !important;
+  display: none;
+  opacity: 0;
+  z-index: 1090;
+  pointer-events: none;
+}
+
+html[dir="rtl"] #layout-menu {
+  z-index: 1100 !important;
+}
+
+@media (max-width: 1199.98px) {
+  html[dir="rtl"] #layout-menu {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 260px;
+    max-width: 85vw;
+    transform: translateX(100%) !important;
+    transition: transform 0.25s ease-in-out !important;
+    margin: 0 !important;
+  }
+
+  html[dir="rtl"].layout-menu-expanded #layout-menu,
+  html[dir="rtl"] .layout-menu-expanded #layout-menu {
+    transform: translateX(0) !important;
+  }
+
+  html[dir="rtl"].layout-menu-expanded .layout-overlay,
+  html[dir="rtl"] .layout-menu-expanded .layout-overlay,
+  html[dir="rtl"].layout-menu-expanded [data-layout-overlay],
+  html[dir="rtl"] .layout-menu-expanded [data-layout-overlay] {
+    display: block !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  html[dir="rtl"] .layout-page,
+  html[dir="rtl"] .layout-content,
+  html[dir="rtl"] .layout-wrapper {
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  html[dir="rtl"] #layout-menu {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    left: auto !important;
+    transform: none !important;
+  }
+
+  html[dir="rtl"] .layout-overlay,
+  html[dir="rtl"] [data-layout-overlay] {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}
+
+/* Fix select arrow placement in RTL/LTR */
+html[dir="rtl"] .form-select {
+  background-position: left 0.9375rem center !important;
+}
+
+html[dir="rtl"] .form-select:focus,
+html[dir="rtl"] .form-select:focus-within {
+  background-position: left calc(0.9375rem - 1px) center !important;
+}
+
+html[dir="rtl"] .input-group .form-select,
+html[dir="rtl"] .input-group .form-select:focus,
+html[dir="rtl"] .input-group .form-select:focus-within {
+  background-position: left 0.9375rem center !important;
+}
+
+html[dir="rtl"] .input-group.input-group-sm .form-select,
+html[dir="rtl"] .input-group.input-group-sm .form-select:focus,
+html[dir="rtl"] .input-group.input-group-sm .form-select:focus-within {
+  background-position: left 0.8125rem center !important;
+}
+
+html[dir="rtl"] .input-group.input-group-lg .form-select,
+html[dir="rtl"] .input-group.input-group-lg .form-select:focus,
+html[dir="rtl"] .input-group.input-group-lg .form-select:focus-within {
+  background-position: left 1.3125rem center !important;
+}
+
+html[dir="ltr"] .form-select {
+  background-position: right 0.9375rem center !important;
+}
+
+html[dir="ltr"] .form-select:focus,
+html[dir="ltr"] .form-select:focus-within {
+  background-position: right calc(0.9375rem - 1px) center !important;
+}

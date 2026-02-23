@@ -57,10 +57,13 @@ class OrderApiTest extends TestCase
                 'phone' => '01011112222',
                 'whatsapp' => '01033334444',
                 'email' => 'checkout@example.com',
+                'city' => 'Cairo',
                 'address' => 'Cairo, Nasr City, Street 1, Building 3',
                 'notes' => 'Do not call before arrival',
+                'billing_payment_method' => 'cash',
                 'checkout' => [
                     'shippingAddress' => 'Cairo, Nasr City, Street 1, Building 3',
+                    'billingAddress' => 'Cairo, Nasr City, Billing Desk 5',
                     'notes' => 'Ring the bell',
                 ],
             ]);
@@ -68,18 +71,155 @@ class OrderApiTest extends TestCase
         $response->assertStatus(201);
         $response->assertJsonPath('status', true);
         $response->assertJsonPath('meta.message', 'Order created');
+        $response->assertJsonPath('data.currency', 'EGP');
+        $response->assertJsonPath('data.financials.subtotal', 200);
+        $response->assertJsonPath('data.financials.total', 200);
+        $response->assertJsonPath('data.financials.paid_amount', 0);
+        $response->assertJsonPath('data.financials.due_amount', 200);
+        $response->assertJsonPath('data.contact_snapshot.phone', '01011112222');
+        $response->assertJsonPath('data.items.0.product.unit_label', 'Unit');
 
         $this->assertDatabaseHas('orders', [
             'customer_id' => $customer->id,
             'status' => Order::STATUS_PENDING,
-            'customer_phone' => '01011112222',
-            'customer_whatsapp' => '01033334444',
-            'customer_email' => 'checkout@example.com',
-            'customer_address' => 'Cairo, Nasr City, Street 1, Building 3',
             'customer_notes' => 'Do not call before arrival',
+        ]);
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'phone' => '01011112222',
+            'city' => 'Cairo',
+            'whatsapp' => '01033334444',
+            'email' => 'checkout@example.com',
+            'address' => 'Cairo, Nasr City, Street 1, Building 3',
         ]);
         $this->assertDatabaseHas('order_items', ['product_id' => $product->id, 'qty' => 2]);
         $this->assertDatabaseHas('products', ['id' => $product->id, 'stock_qty' => 3]);
+        $this->assertDatabaseHas('orders', [
+            'customer_id' => $customer->id,
+            'billing_payment_method' => 'cash',
+        ]);
+
+        $storedOrder = Order::query()->latest('id')->firstOrFail();
+        $this->assertIsArray($storedOrder->billing_address);
+        $this->assertSame('Cairo, Nasr City, Billing Desk 5', $storedOrder->billing_address['address_line_1'] ?? null);
+    }
+
+    public function test_create_order_uses_customer_profile_defaults_when_checkout_fields_are_missing(): void
+    {
+        $customer = Customer::factory()->create([
+            'email' => 'profile@example.test',
+            'phone' => '01077778888',
+            'whatsapp' => '01099990000',
+            'city' => 'Mansoura',
+            'address' => 'Main Street, Building 10',
+        ]);
+
+        $product = Product::factory()->create([
+            'price' => 75,
+            'stock_qty' => 3,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAsCustomerApi($customer)
+            ->withHeaders(['Idempotency-Key' => 'idem-order-profile-defaults'])
+            ->postJson('/api/v2/orders', [
+                'items' => [
+                    ['productId' => $product->id, 'quantity' => 1],
+                ],
+            ]);
+
+        $response->assertStatus(201);
+        $response->assertJsonPath('data.contact_snapshot.email', 'profile@example.test');
+        $response->assertJsonPath('data.contact_snapshot.phone', '01077778888');
+        $response->assertJsonPath('data.contact_snapshot.whatsapp', '01099990000');
+        $response->assertJsonPath('data.contact_snapshot.city', 'Mansoura');
+        $response->assertJsonPath('data.contact_snapshot.address', 'Main Street, Building 10');
+    }
+
+    public function test_create_order_syncs_basic_customer_profile_fields_from_checkout_payload(): void
+    {
+        $customer = Customer::factory()->create([
+            'name' => 'Old Name',
+            'email' => 'old-profile@example.test',
+            'phone' => '01000000001',
+            'whatsapp' => null,
+            'city' => null,
+            'address' => null,
+        ]);
+
+        $product = Product::factory()->create([
+            'price' => 60,
+            'stock_qty' => 5,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAsCustomerApi($customer)
+            ->withHeaders(['Idempotency-Key' => 'idem-sync-customer-profile'])
+            ->postJson('/api/v2/orders', [
+                'items' => [
+                    ['productId' => $product->id, 'quantity' => 1],
+                ],
+                'name' => 'New Name',
+                'email' => 'new-profile@example.test',
+                'phone' => '01011110000',
+                'whatsapp' => '01022220000',
+                'city' => 'Alexandria',
+                'address' => 'Smouha, Block 7',
+                'shipping_address' => [
+                    'address_line_1' => 'Temporary Delivery Point',
+                    'city' => 'Cairo',
+                ],
+            ]);
+
+        $response->assertStatus(201);
+
+        $customer->refresh();
+        $this->assertSame('New Name', $customer->name);
+        $this->assertSame('new-profile@example.test', $customer->email);
+        $this->assertSame('01011110000', $customer->phone);
+        $this->assertSame('01022220000', $customer->whatsapp);
+        $this->assertSame('Alexandria', $customer->city);
+        $this->assertSame('Smouha, Block 7', $customer->address);
+
+        $order = Order::query()->latest('id')->firstOrFail();
+        $this->assertSame('Temporary Delivery Point', $order->shipping_address['address_line_1'] ?? null);
+        $this->assertSame('Cairo', $order->shipping_address['city'] ?? null);
+    }
+
+    public function test_create_order_keeps_customer_default_address_when_only_exceptional_shipping_is_sent(): void
+    {
+        $customer = Customer::factory()->create([
+            'city' => 'Mansoura',
+            'address' => 'Main Street, Building 10',
+        ]);
+
+        $product = Product::factory()->create([
+            'price' => 45,
+            'stock_qty' => 4,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAsCustomerApi($customer)
+            ->withHeaders(['Idempotency-Key' => 'idem-exceptional-shipping-only'])
+            ->postJson('/api/v2/orders', [
+                'items' => [
+                    ['productId' => $product->id, 'quantity' => 1],
+                ],
+                'shipping_address' => [
+                    'address_line_1' => 'Temporary Site 9',
+                    'city' => 'Cairo',
+                ],
+            ]);
+
+        $response->assertStatus(201);
+
+        $customer->refresh();
+        $this->assertSame('Main Street, Building 10', $customer->address);
+        $this->assertSame('Mansoura', $customer->city);
+
+        $order = Order::query()->latest('id')->firstOrFail();
+        $this->assertSame('Temporary Site 9', $order->shipping_address['address_line_1'] ?? null);
+        $this->assertSame('Cairo', $order->shipping_address['city'] ?? null);
     }
 
     public function test_create_order_returns_409_when_stock_is_insufficient(): void
@@ -199,6 +339,14 @@ class OrderApiTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonPath('status', true);
+        $response->assertJsonStructure([
+            'data' => [
+                '*' => [
+                    'financials' => ['subtotal', 'adjustments_total', 'total', 'paid_amount', 'due_amount'],
+                    'contact_snapshot' => ['name', 'email', 'phone', 'city', 'whatsapp', 'address', 'notes'],
+                ],
+            ],
+        ]);
 
         $data = $response->json('data');
         $orderIds = collect($data)->pluck('id')->all();

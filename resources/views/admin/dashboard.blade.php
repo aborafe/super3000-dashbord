@@ -3,6 +3,7 @@
 @section('title', __('Dashboard'))
 
 @section('content')
+  @php $locale = app()->getLocale(); @endphp
   <div class="container-xxl flex-grow-1 container-p-y">
     <div class="row">
       <div class="col-xxl-8 mb-6 order-0">
@@ -14,7 +15,7 @@
                 <p class="mb-6">
                   {{ __('You have :orders orders this month.', ['orders' => number_format($stats['ordersCount'])]) }}
                 </p>
-                <a href="{{ route('admin.orders.index') }}" class="btn btn-sm btn-outline-primary">{{ __('View Orders') }}</a>
+                <a href="{{ route('admin.orders.index', ['locale' => $locale]) }}" class="btn btn-sm btn-outline-primary">{{ __('View Orders') }}</a>
               </div>
             </div>
             <div class="col-sm-5 text-center text-sm-left">
@@ -58,7 +59,7 @@
                   </div>
                 </div>
                 <p class="mb-1">{{ __('Profit') }}</p>
-                <h4 class="card-title mb-3">${{ number_format($stats['profit'], 2) }}</h4>
+                <h4 class="card-title mb-3">{{ money($stats['profit'], 2) }}</h4>
                 <small class="text-success fw-medium"
                   ><i class="icon-base bx bx-up-arrow-alt"></i> +72.80%</small
                 >
@@ -92,7 +93,7 @@
                   </div>
                 </div>
                 <p class="mb-1">{{ __('Sales') }}</p>
-                <h4 class="card-title mb-3">${{ number_format($stats['totalSales'], 2) }}</h4>
+                <h4 class="card-title mb-3">{{ money($stats['totalSales'], 2) }}</h4>
                 <small class="text-success fw-medium"
                   ><i class="icon-base bx bx-up-arrow-alt"></i> +28.42%</small
                 >
@@ -106,15 +107,15 @@
                 <div class="d-flex flex-column gap-3">
                   <div class="d-flex justify-content-between">
                     <span>{{ __('Income') }}</span>
-                    <span class="fw-medium">${{ number_format($stats['totalSales'], 2) }}</span>
+                    <span class="fw-medium">{{ money($stats['totalSales'], 2) }}</span>
                   </div>
                   <div class="d-flex justify-content-between">
                     <span>{{ __('Expense') }}</span>
-                    <span class="fw-medium">${{ number_format($stats['totalSales'] * 0.18, 2) }}</span>
+                    <span class="fw-medium">{{ money($stats['totalSales'] * 0.18, 2) }}</span>
                   </div>
                   <div class="d-flex justify-content-between">
                     <span>{{ __('Profit') }}</span>
-                    <span class="fw-medium">${{ number_format($stats['profit'], 2) }}</span>
+                    <span class="fw-medium">{{ money($stats['profit'], 2) }}</span>
                   </div>
                 </div>
               </div>
@@ -153,14 +154,16 @@
                 class="px-3"
                 data-labels='@json($monthLabels)'
                 data-current='@json($currentYearSeries)'
-                data-previous='@json($previousYearSeries)'></div>
+                data-previous='@json($previousYearSeries)'
+                data-current-year="{{ $currentYear }}"
+                data-previous-year="{{ $previousYear }}"></div>
             </div>
             <div class="col-lg-4">
               <div class="card-body px-xl-9 py-12 d-flex align-items-center flex-column">
                 <div class="text-center mb-6">
                   <div class="btn-group">
                     <button type="button" class="btn btn-outline-primary">
-                      {{ now()->subYear()->year }}
+                      {{ $currentYear }}
                     </button>
                     <button
                       type="button"
@@ -170,15 +173,17 @@
                       <span class="visually-hidden">{{ __('Toggle Dropdown') }}</span>
                     </button>
                     <ul class="dropdown-menu">
-                      <li><a class="dropdown-item" href="javascript:void(0);">{{ now()->subYears(1)->year }}</a></li>
-                      <li><a class="dropdown-item" href="javascript:void(0);">{{ now()->subYears(2)->year }}</a></li>
-                      <li><a class="dropdown-item" href="javascript:void(0);">{{ now()->subYears(3)->year }}</a></li>
+                      <li><a class="dropdown-item" href="javascript:void(0);">{{ $currentYear }}</a></li>
+                      <li><a class="dropdown-item" href="javascript:void(0);">{{ $previousYear }}</a></li>
+                      <li><a class="dropdown-item" href="javascript:void(0);">{{ $previousYear - 1 }}</a></li>
                     </ul>
                   </div>
                 </div>
 
-                <div id="growthChart" data-value="{{ $growth }}"></div>
-                <div class="text-center fw-medium my-6">{{ $growth }}% {{ __('Company Growth') }}</div>
+                <div id="growthChart" data-value="{{ $growthForChart }}" data-label="{{ __('Growth') }}"></div>
+                <div class="text-center fw-medium my-6 {{ $growthDirection === 'up' ? 'text-success' : 'text-danger' }}">
+                  {{ $growthDisplay > 0 ? '+' : '' }}{{ $growthDisplay }}% {{ __('Company Growth') }}
+                </div>
 
                 <div class="d-flex gap-11 justify-content-between">
                   <div class="d-flex">
@@ -188,8 +193,8 @@
                       ></span>
                     </div>
                     <div class="d-flex flex-column">
-                      <small>{{ now()->subYear()->year }}</small>
-                      <h6 class="mb-0">${{ number_format(array_sum($currentYearSeries), 1) }}</h6>
+                      <small>{{ $currentYear }}</small>
+                      <h6 class="mb-0">{{ money(array_sum($currentYearSeries), 1) }}</h6>
                     </div>
                   </div>
                   <div class="d-flex">
@@ -199,8 +204,8 @@
                       ></span>
                     </div>
                     <div class="d-flex flex-column">
-                      <small>{{ now()->subYears(2)->year }}</small>
-                      <h6 class="mb-0">${{ number_format(array_sum($previousYearSeries), 1) }}</h6>
+                      <small>{{ $previousYear }}</small>
+                      <h6 class="mb-0">{{ money(array_sum($previousYearSeries), 1) }}</h6>
                     </div>
                   </div>
                 </div>
@@ -236,7 +241,7 @@
                   </div>
                 </div>
                 <p class="mb-1">{{ __('Payments') }}</p>
-                <h4 class="card-title mb-3">${{ number_format($stats['totalSales'], 2) }}</h4>
+                <h4 class="card-title mb-3">{{ money($stats['totalSales'], 2) }}</h4>
                 <small class="text-danger fw-medium"
                   ><i class="icon-base bx bx-down-arrow-alt"></i> -14.82%</small
                 >
@@ -288,7 +293,7 @@
                       <span class="text-success text-nowrap fw-medium"
                         ><i class="icon-base bx bx-up-arrow-alt"></i> 68.2%</span
                       >
-                      <h4 class="mb-0">${{ number_format($stats['totalSales'], 0) }}</h4>
+                      <h4 class="mb-0">{{ money($stats['totalSales'], 0) }}</h4>
                     </div>
                   </div>
                   <div id="profileReportChart" data-series='@json($profileReportSeries)'></div>
@@ -299,6 +304,86 @@
         </div>
       </div>
     </div>
+
+    @canany(['reports.view', 'warehouses.view', 'inventory.view', 'orders.view', 'payments.view', 'customers.view', 'products.view'])
+      <div class="row">
+        <div class="col-12 mb-6">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title m-0">{{ __('Operations') }} &amp; {{ __('Reports') }}</h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                @can('reports.view')
+                  <div class="col-6 col-md-4 col-xl-3">
+                    <a href="{{ route('admin.operations.reports.index', ['locale' => $locale]) }}" class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2">
+                      <i class="icon-base bx bx-bar-chart-alt-2"></i>
+                      <span>{{ __('Reports') }}</span>
+                    </a>
+                  </div>
+                @endcan
+                @can('warehouses.view')
+                  <div class="col-6 col-md-4 col-xl-3">
+                    <a href="{{ route('admin.operations.warehouses.index', ['locale' => $locale]) }}" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2">
+                      <i class="icon-base bx bx-buildings"></i>
+                      <span>{{ __('Warehouses') }}</span>
+                    </a>
+                  </div>
+                @endcan
+                @can('inventory.view')
+                  <div class="col-6 col-md-4 col-xl-3">
+                    <a href="{{ route('admin.catalog.inventory.index', ['locale' => $locale]) }}" class="btn btn-outline-info w-100 d-flex align-items-center justify-content-center gap-2">
+                      <i class="icon-base bx bx-transfer"></i>
+                      <span>{{ __('Inventory') }}</span>
+                    </a>
+                  </div>
+                @endcan
+                @can('orders.view')
+                  <div class="col-6 col-md-4 col-xl-3">
+                    <a href="{{ route('admin.invoices.index', ['locale' => $locale]) }}" class="btn btn-outline-warning w-100 d-flex align-items-center justify-content-center gap-2">
+                      <i class="icon-base bx bx-receipt"></i>
+                      <span>{{ __('Invoices') }}</span>
+                    </a>
+                  </div>
+                @endcan
+                @can('orders.view')
+                  <div class="col-6 col-md-4 col-xl-3">
+                    <a href="{{ route('admin.orders.index', ['locale' => $locale]) }}" class="btn btn-outline-dark w-100 d-flex align-items-center justify-content-center gap-2">
+                      <i class="icon-base bx bx-cart"></i>
+                      <span>{{ __('Orders') }}</span>
+                    </a>
+                  </div>
+                @endcan
+                @can('payments.view')
+                  <div class="col-6 col-md-4 col-xl-3">
+                    <a href="{{ route('admin.sales.payments.index', ['locale' => $locale]) }}" class="btn btn-outline-success w-100 d-flex align-items-center justify-content-center gap-2">
+                      <i class="icon-base bx bx-credit-card"></i>
+                      <span>{{ __('Payments') }}</span>
+                    </a>
+                  </div>
+                @endcan
+                @can('customers.view')
+                  <div class="col-6 col-md-4 col-xl-3">
+                    <a href="{{ route('admin.sales.customers.index', ['locale' => $locale]) }}" class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2">
+                      <i class="icon-base bx bx-user"></i>
+                      <span>{{ __('Customers') }}</span>
+                    </a>
+                  </div>
+                @endcan
+                @can('products.view')
+                  <div class="col-6 col-md-4 col-xl-3">
+                    <a href="{{ route('admin.products.index', ['locale' => $locale]) }}" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2">
+                      <i class="icon-base bx bx-package"></i>
+                      <span>{{ __('Products') }}</span>
+                    </a>
+                  </div>
+                @endcan
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    @endcanany
 
     <div class="row">
       <div class="col-md-6 col-lg-4 col-xl-4 order-0 mb-6">
@@ -331,7 +416,7 @@
                 <h3 class="mb-1">{{ number_format($stats['ordersCount']) }}</h3>
                 <small>{{ __('Total Orders') }}</small>
               </div>
-              <div id="orderStatisticsChart" data-series='@json($orderStatistics['series'])' data-labels='@json($orderStatistics['labels'])'></div>
+              <div id="orderStatisticsChart" data-series='@json($orderStatistics['series'])' data-labels='@json($orderStatistics['labels'])' data-total-label="{{ __('Total') }}"></div>
             </div>
             <ul class="p-0 m-0">
               <li class="d-flex align-items-center mb-5">
@@ -429,7 +514,7 @@
                   <div>
                     <p class="mb-0">{{ __('Total Balance') }}</p>
                     <div class="d-flex align-items-center">
-                      <h6 class="mb-0 me-1">${{ number_format($stats['totalSales'], 2) }}</h6>
+                      <h6 class="mb-0 me-1">{{ money($stats['totalSales'], 2) }}</h6>
                       <small class="text-success fw-medium">
                         <i class="icon-base bx bx-chevron-up icon-lg"></i>
                         42.9%
@@ -444,7 +529,7 @@
                   </div>
                   <div>
                     <h6 class="mb-0">{{ __('Income this week') }}</h6>
-                    <small>${{ number_format(array_sum($weeklyRevenue), 0) }} {{ __('less than last week') }}</small>
+                    <small>{{ money(array_sum($weeklyRevenue), 0) }} {{ __('less than last week') }}</small>
                   </div>
                 </div>
               </div>
@@ -483,12 +568,18 @@
                   </div>
                   <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
                     <div class="me-2">
-                      <small class="d-block">{{ ucfirst($payment->method) }}</small>
-                      <h6 class="fw-normal mb-0">{{ __('Order') }} {{ $payment->order?->order_no }}</h6>
+                      <small class="d-block">{{ __(ucfirst((string) $payment->method)) }}</small>
+                      <h6 class="fw-normal mb-0">
+                        @if ($payment->order?->order_no)
+                          {{ __('Order') }} {{ $payment->order->order_no }}
+                        @else
+                          {{ __('Customer Account') }} - {{ $payment->customer?->name ?? __('Customer') }}
+                        @endif
+                      </h6>
                     </div>
                     <div class="user-progress d-flex align-items-center gap-2">
-                      <h6 class="fw-normal mb-0">${{ number_format($payment->amount, 2) }}</h6>
-                      <span class="text-body-secondary">USD</span>
+                      <h6 class="fw-normal mb-0">{{ money($payment->amount, 2) }}</h6>
+                      <span class="text-body-secondary">{{ currency_code() }}</span>
                     </div>
                   </div>
                 </li>
@@ -506,7 +597,7 @@
         <div class="card">
           <div class="card-header d-flex align-items-center justify-content-between">
             <h5 class="card-title m-0">{{ __('Top Products') }}</h5>
-            <a href="{{ route('admin.products.index') }}" class="btn btn-sm btn-outline-secondary">{{ __('View') }}</a>
+            <a href="{{ route('admin.products.index', ['locale' => $locale]) }}" class="btn btn-sm btn-outline-secondary">{{ __('View') }}</a>
           </div>
           <div class="table-responsive text-nowrap">
             <table class="table">
@@ -533,20 +624,24 @@
                       default => 'bg-label-warning',
                     };
                   @endphp
-                  <tr>
+                  <tr data-product-link="{{ route('admin.products.edit', ['locale' => $locale, 'product' => $item->product_id]) }}" style="cursor: pointer;">
                     <td>
                       <div class="d-flex align-items-center">
                         <div class="avatar me-2">
                           <img src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/img/elements/2.png" alt="Product" class="rounded" />
                         </div>
                         <div>
-                          <h6 class="mb-0">{{ $item->product?->name ?? __('Product') }}</h6>
+                          <h6 class="mb-0">
+                            <a href="{{ route('admin.products.edit', ['locale' => $locale, 'product' => $item->product_id]) }}" class="text-body">
+                              {{ $item->product?->name ?? __('Product') }}
+                            </a>
+                          </h6>
                           <small class="text-muted">{{ number_format($item->sold_qty) }} {{ __('sold') }}</small>
                         </div>
                       </div>
                     </td>
                     <td>{{ $item->product?->category?->name ?? __('Category') }}</td>
-                    <td>{{ ucfirst($item->latestPayment?->method ?? 'card') }}</td>
+                    <td>{{ __(ucfirst((string) ($item->latestPayment?->method ?? 'card'))) }}</td>
                     <td><span class="badge {{ $statusClass }}">{{ __(ucfirst($status)) }}</span></td>
                     <td>
                       <div class="dropdown">
@@ -554,10 +649,10 @@
                           <i class="icon-base bx bx-dots-vertical-rounded"></i>
                         </button>
                         <div class="dropdown-menu">
-                          <a class="dropdown-item" href="{{ route('admin.products.edit', $item->product_id) }}">
+                          <a class="dropdown-item" href="{{ route('admin.products.edit', ['locale' => $locale, 'product' => $item->product_id]) }}">
                             <i class="icon-base bx bx-edit-alt me-1"></i> {{ __('Edit') }}
                           </a>
-                          <a class="dropdown-item" href="{{ route('admin.orders.index') }}">
+                          <a class="dropdown-item" href="{{ route('admin.products.edit', ['locale' => $locale, 'product' => $item->product_id]) }}">
                             <i class="icon-base bx bx-show me-1"></i> {{ __('View') }}
                           </a>
                         </div>
@@ -581,3 +676,5 @@
 @section('page-scripts')
   <script src="{{ asset('admin-dashboard.js') }}"></script>
 @endsection
+
+

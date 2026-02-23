@@ -26,18 +26,18 @@ class OrderObserver
         }
 
         if ($order->wasChanged('status')) {
-            $from = \App\Models\Order::normalizeStatus((string) $order->getOriginal('status'));
-            $to = \App\Models\Order::normalizeStatus((string) $order->status);
+            $from = Order::normalizeStatus((string) $order->getOriginal('status'));
+            $to = Order::normalizeStatus((string) $order->status);
 
             if ($from === $to) {
                 return;
             }
 
             $notification = new OrderStatusChanged($order, $from, $to);
-            $this->notifyAdmins($notification);
+            $this->notifyAdmins($notification, true);
 
             if ($order->customer) {
-                $order->customer->notify($notification);
+                $order->customer->notifyNow($notification);
             }
         } elseif (! empty($changes)) {
             // generic update notification to customer
@@ -50,11 +50,17 @@ class OrderObserver
         }
     }
 
-    protected function notifyAdmins(object $notification): void
+    protected function notifyAdmins(object $notification, bool $immediate = false): void
     {
         $admins = User::role('admin')->get();
 
         if ($admins->isEmpty()) {
+            return;
+        }
+
+        if ($immediate) {
+            Notification::sendNow($admins, $notification);
+
             return;
         }
 

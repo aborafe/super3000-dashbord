@@ -10,7 +10,13 @@ class AdminMessageNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public string $title, public string $message) {}
+    public function __construct(
+        public string $title,
+        public string $message,
+        public ?string $senderName = null,
+        public ?int $senderId = null,
+    ) {
+    }
 
     public function via(object $notifiable): array
     {
@@ -33,6 +39,8 @@ class AdminMessageNotification extends Notification implements ShouldQueue
             'type' => 'admin_message',
             'title' => $this->title,
             'message' => $this->message,
+            'sender_name' => $this->senderName,
+            'sender_id' => $this->senderId,
         ];
     }
 }

@@ -9,7 +9,23 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $sku
+ * @property float|string $price
+ * @property int $stock_qty
+ * @property bool $is_active
+ * @property int|null $category_id
+ * @property string|null $brand
+ * @property string|null $made_in
+ * @property string|null $description
+ * @property string|null $cover_image
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
 class Product extends Model
 {
     use HasFactory, SoftDeletes;

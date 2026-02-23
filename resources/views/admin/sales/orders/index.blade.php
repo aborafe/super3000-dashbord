@@ -71,7 +71,7 @@
                                     <td>{{ $order->customer?->name }}</td>
                                     <td><span class="badge {{ $badge }}">{{ __(ucfirst($normalizedStatus)) }}</span>
                                     </td>
-                                    <td>${{ number_format($order->total, 2) }}</td>
+                                    <td>{{ money($order->total, 2) }}</td>
                                     <td>{{ $order->created_at?->format('Y-m-d') }}</td>
                                     <td class="text-end">
                                         <a href="{{ route('admin.sales.orders.show', $order) }}"
@@ -93,3 +93,4 @@
         </div>
     </div>
 @endsection
+

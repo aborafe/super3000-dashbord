@@ -4,8 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\Customer;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\CustomerLedgerService;
 use App\Services\InventoryService;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -58,10 +60,11 @@ class AdminOrderInvoiceEditorTest extends TestCase
         $response->assertRedirect(route('admin.orders.show', ['locale' => 'en', 'order' => $order->id]));
 
         $order->refresh();
+        $order->load('customer');
 
-        $this->assertSame('Edited Customer', $order->customer_name);
-        $this->assertSame('edited@example.test', $order->customer_email);
-        $this->assertSame('01012345678', $order->customer_phone);
+        $this->assertSame('Edited Customer', (string) $order->customer?->name);
+        $this->assertSame('edited@example.test', (string) $order->customer?->email);
+        $this->assertSame('01012345678', (string) $order->customer?->phone);
         $this->assertSame('12 Shipping Road', $order->shipping_address['address_line_1'] ?? null);
     }
 
@@ -93,10 +96,10 @@ class AdminOrderInvoiceEditorTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonFragment(['message' => 'Invoice and customer details updated.']);
-        $this->assertDatabaseHas('orders', [
-            'id' => $order->id,
-            'customer_name' => 'Autosave Customer',
-            'customer_email' => 'autosave@example.test',
+        $this->assertDatabaseHas('customers', [
+            'id' => $order->customer_id,
+            'name' => 'Autosave Customer',
+            'email' => 'autosave@example.test',
         ]);
     }
 
@@ -250,14 +253,15 @@ class AdminOrderInvoiceEditorTest extends TestCase
     public function test_print_page_uses_invoice_snapshot_details(): void
     {
         $admin = $this->createAdminUser();
-        $customer = Customer::factory()->create();
+        $customer = Customer::factory()->create([
+            'name' => 'Snapshot Customer',
+            'email' => 'snapshot@example.test',
+            'phone' => '0500000000',
+        ]);
         $product = Product::factory()->create(['is_active' => true]);
 
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
-            'customer_name' => 'Snapshot Customer',
-            'customer_email' => 'snapshot@example.test',
-            'customer_phone' => '0500000000',
             'shipping_address' => [
                 'address_line_1' => '221B Baker Street',
                 'city' => 'London',
@@ -284,5 +288,160 @@ class AdminOrderInvoiceEditorTest extends TestCase
         $response->assertSeeText('221B Baker Street');
         $response->assertSeeText('snapshot@example.test');
         $response->assertSeeText('0500000000');
+    }
+
+    public function test_admin_can_record_customer_payment_from_customer_page_with_fifo_allocation(): void
+    {
+        $admin = $this->createAdminUser();
+        $customer = Customer::factory()->create();
+        $olderOrder = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => Order::STATUS_PENDING,
+            'subtotal' => 100,
+            'total' => 100,
+            'created_at' => now()->subDays(2),
+            'updated_at' => now()->subDays(2),
+        ]);
+        $newerOrder = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => Order::STATUS_PENDING,
+            'subtotal' => 80,
+            'total' => 80,
+            'created_at' => now()->subDay(),
+            'updated_at' => now()->subDay(),
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.sales.customers.payments.store', [
+            'locale' => 'en',
+            'customer' => $customer->id,
+        ]), [
+            'amount' => 120,
+            'method' => 'cash',
+            'paid_at' => now()->toDateString(),
+            'notes' => 'ledger payment',
+        ]);
+
+        $response->assertRedirect(route('admin.sales.customers.edit', [
+            'locale' => 'en',
+            'customer' => $customer->id,
+        ]));
+
+        $payment = Payment::query()->latest('id')->firstOrFail();
+
+        $this->assertSame('customer_account', $payment->source);
+        $this->assertSame((int) $customer->id, (int) $payment->customer_id);
+        $this->assertDatabaseHas('payment_allocations', [
+            'payment_id' => $payment->id,
+            'order_id' => $olderOrder->id,
+            'amount' => 100,
+        ]);
+        $this->assertDatabaseHas('payment_allocations', [
+            'payment_id' => $payment->id,
+            'order_id' => $newerOrder->id,
+            'amount' => 20,
+        ]);
+    }
+
+    public function test_admin_can_record_partial_payment_from_order_edit_page(): void
+    {
+        $admin = $this->createAdminUser();
+        $customer = Customer::factory()->create();
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => Order::STATUS_PENDING,
+            'subtotal' => 100,
+            'total' => 100,
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.orders.payments.store', [
+            'locale' => 'en',
+            'order' => $order->id,
+        ]), [
+            'amount' => 40,
+            'method' => 'transfer',
+            'paid_at' => now()->toDateString(),
+        ]);
+
+        $response->assertRedirect(route('admin.orders.show', [
+            'locale' => 'en',
+            'order' => $order->id,
+        ]));
+
+        $payment = Payment::query()->latest('id')->firstOrFail();
+
+        $this->assertSame('order_edit', $payment->source);
+        $this->assertSame((int) $order->id, (int) $payment->order_id);
+        $this->assertDatabaseHas('payment_allocations', [
+            'payment_id' => $payment->id,
+            'order_id' => $order->id,
+            'amount' => 40,
+        ]);
+    }
+
+    public function test_partial_order_payment_creates_customer_notification_event(): void
+    {
+        $admin = $this->createAdminUser();
+        $customer = Customer::factory()->create();
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => Order::STATUS_PENDING,
+            'subtotal' => 100,
+            'total' => 100,
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.orders.payments.store', [
+            'locale' => 'en',
+            'order' => $order->id,
+        ]), [
+            'amount' => 40,
+            'method' => 'transfer',
+            'paid_at' => now()->toDateString(),
+        ]);
+
+        $response->assertRedirect(route('admin.orders.show', [
+            'locale' => 'en',
+            'order' => $order->id,
+        ]));
+
+        $notification = $customer->fresh()->notifications()->latest()->first();
+        $this->assertNotNull($notification);
+
+        $payload = $notification->data;
+        $this->assertSame('order_payment_recorded', (string) ($payload['type'] ?? ''));
+        $this->assertSame((int) $order->id, (int) ($payload['order_id'] ?? 0));
+        $this->assertSame($order->order_no, (string) ($payload['order_no'] ?? ''));
+        $this->assertEquals(40, (float) ($payload['payment_amount'] ?? 0));
+        $this->assertEquals(60, (float) ($payload['due_after'] ?? 0));
+        $this->assertTrue((bool) ($payload['is_partial'] ?? false));
+    }
+
+    public function test_customer_ledger_tab_reflects_debtor_and_creditor_states(): void
+    {
+        $admin = $this->createAdminUser();
+        $customer = Customer::factory()->create();
+        Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => Order::STATUS_PENDING,
+            'subtotal' => 100,
+            'total' => 100,
+        ]);
+
+        $debtorResponse = $this->actingAs($admin)->get(route('admin.sales.customers.edit', [
+            'locale' => 'en',
+            'customer' => $customer->id,
+        ]));
+        $debtorResponse->assertOk();
+        $debtorResponse->assertSeeText('Debtor');
+        $debtorResponse->assertSee('text-danger', false);
+
+        app(CustomerLedgerService::class)->postCustomerPayment($customer, 150, 'cash');
+
+        $creditorResponse = $this->actingAs($admin)->get(route('admin.sales.customers.edit', [
+            'locale' => 'en',
+            'customer' => $customer->id,
+        ]));
+        $creditorResponse->assertOk();
+        $creditorResponse->assertSeeText('Creditor');
+        $creditorResponse->assertSee('text-success', false);
     }
 }

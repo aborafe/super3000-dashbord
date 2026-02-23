@@ -33,14 +33,43 @@
 - `POST /auth/logout` (auth)
   - Revokes current token
 - `GET /me` (auth)
-  - Returns authenticated customer profile
+  - Returns authenticated customer profile:
+    - `name`, `email`, `phone`, `whatsapp`, `city`, `address`, `is_active`
+- `PATCH /me` (auth)
+  - Updates customer profile data:
+    - `name`, `email`, `phone`, `whatsapp`, `city`, `address`
+  - On successful profile change, system sends admin notification that includes:
+    - `old_profile`
+    - `new_profile`
+    - `changed_fields`
 
 ### Categories (read-only)
 - `GET /categories` (auth)
 
 ### Products (read-only)
 - `GET /products` (auth)
-  - Query: `per_page`, `page`, `q`, `category_id`
+  - Query:
+    - `per_page`, `page`, `q`, `category_id`
+    - `filter`:
+      - `all` (default)
+      - `popular` (الأكثر مبيعًا)
+      - `best` (أفضل المنتجات)
+      - `new` (جديد)
+      - `price` (ترتيب بالسعر)
+    - `sort` (اختياري):
+      - `newest`
+      - `best_selling`
+      - `price_asc`
+      - `price_desc`
+  - Response meta includes:
+    - `meta.filters.applied_filter`
+    - `meta.filters.applied_sort`
+    - `meta.filters.available_filters`
+    - `meta.filters.available_sorts`
+  - Product object includes:
+    - `featured` (true للمنتجات الحديثة)
+    - `best_seller` (true للمنتجات المباعة)
+    - `sold_qty` (إجمالي الكمية المباعة ضمن حالات الطلب المعتمدة)
 - `GET /products/{product}` (auth)
 
 ### Orders
@@ -55,8 +84,10 @@
     - `phone`
     - `whatsapp`
     - `email`
+    - `city`
     - `address`
     - `notes`
+  - Missing contact fields are auto-filled from customer profile defaults (if available)
   - Stock is deducted from default warehouse (`product_stocks` master)
 
 ### Notifications

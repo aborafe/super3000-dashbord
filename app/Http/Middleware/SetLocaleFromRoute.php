@@ -16,13 +16,13 @@ class SetLocaleFromRoute
         $locale = $request->route('locale');
 
         if (! in_array($locale, ['en', 'ar'], true)) {
-            $locale = config('app.locale', 'en');
+            $locale = config('app.locale', 'ar');
         }
 
         app()->setLocale($locale);
+        // Keep generated URLs on the same host/port as the current request.
+        URL::forceRootUrl($request->getSchemeAndHttpHost());
         URL::defaults(['locale' => $locale]);
-
-        $request->route()->forgetParameter('locale');
 
         return $next($request);
     }

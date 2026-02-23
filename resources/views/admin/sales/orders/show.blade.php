@@ -32,9 +32,9 @@
                     <div class="card-body">
                         <p class="mb-2"><strong>{{ __('Customer') }}:</strong> {{ $order->customer?->name }}</p>
                         <p class="mb-2"><strong>{{ __('Status') }}:</strong> {{ __(ucfirst($normalizedStatus)) }}</p>
-                        <p class="mb-2"><strong>{{ __('Subtotal') }}:</strong> ${{ number_format($order->subtotal, 2) }}
+                        <p class="mb-2"><strong>{{ __('Subtotal') }}:</strong> {{ money($order->subtotal, 2) }}
                         </p>
-                        <p class="mb-2"><strong>{{ __('Total') }}:</strong> ${{ number_format($order->total, 2) }}</p>
+                        <p class="mb-2"><strong>{{ __('Total') }}:</strong> {{ money($order->total, 2) }}</p>
                         <p class="mb-0"><strong>{{ __('Date') }}:</strong> {{ $order->created_at?->format('Y-m-d') }}
                         </p>
                     </div>
@@ -88,8 +88,8 @@
                                         <tr>
                                             <td>{{ $item->product?->name }}</td>
                                             <td>{{ $item->qty }}</td>
-                                            <td>${{ number_format($item->price, 2) }}</td>
-                                            <td>${{ number_format($item->line_total, 2) }}</td>
+                                            <td>{{ money($item->price, 2) }}</td>
+                                            <td>{{ money($item->line_total, 2) }}</td>
                                         </tr>
                                     @empty
                                         <tr>
@@ -106,3 +106,4 @@
         </div>
     </div>
 @endsection
+

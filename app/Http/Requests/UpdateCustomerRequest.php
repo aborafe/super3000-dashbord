@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Customer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -14,7 +15,10 @@ class UpdateCustomerRequest extends FormRequest
 
     public function rules(): array
     {
-        $customerId = $this->route('customer')?->id ?? null;
+        $routeCustomer = $this->route('customer');
+        $customerId = $routeCustomer instanceof Customer
+            ? (int) $routeCustomer->getKey()
+            : (is_numeric($routeCustomer) ? (int) $routeCustomer : null);
 
         return [
             'name' => ['required', 'string', 'max:255'],
@@ -34,6 +38,10 @@ class UpdateCustomerRequest extends FormRequest
                     ->ignore($customerId)
                     ->whereNull('deleted_at'),
             ],
+            'whatsapp' => ['nullable', 'string', 'max:50'],
+            'city' => ['nullable', 'string', 'max:120'],
+            'address' => ['nullable', 'string', 'max:1000'],
+            'password' => ['nullable', 'string', 'min:8', 'max:255'],
             'is_active' => ['required', 'boolean'],
         ];
     }

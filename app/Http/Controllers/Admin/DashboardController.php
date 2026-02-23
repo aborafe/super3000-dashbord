@@ -49,16 +49,19 @@ class DashboardController extends Controller
             ->get();
 
         $recentPayments = Payment::query()
-            ->with('order')
-            ->latest()
+            ->where('status', 'paid')
+            ->with(['order', 'customer'])
+            ->orderByRaw('COALESCE(paid_at, created_at) DESC')
+            ->orderByDesc('id')
             ->take(6)
             ->get();
 
         $now = Carbon::now();
+        $locale = app()->getLocale();
         $weeklyStart = $now->copy()->subDays(6)->startOfDay();
 
         $weeklyGrouped = Order::query()
-            ->selectRaw('DATE(created_at) as day, COUNT(*) as total_orders, COALESCE(SUM(total), 0) as total_revenue')
+            ->selectRaw('DATE(created_at) as day, COUNT(*) as total_orders')
             ->whereDate('created_at', '>=', $weeklyStart->toDateString())
             ->groupBy('day')
             ->pluck('total_orders', 'day')
@@ -67,6 +70,7 @@ class DashboardController extends Controller
         $weeklyRevenueGrouped = Order::query()
             ->selectRaw('DATE(created_at) as day, COALESCE(SUM(total), 0) as total_revenue')
             ->whereDate('created_at', '>=', $weeklyStart->toDateString())
+            ->where('status', '!=', Order::STATUS_CANCELLED)
             ->groupBy('day')
             ->pluck('total_revenue', 'day')
             ->all();
@@ -77,7 +81,7 @@ class DashboardController extends Controller
         for ($i = 6; $i >= 0; $i--) {
             $date = $now->copy()->subDays($i);
             $dayKey = $date->toDateString();
-            $weeklyLabels[] = $date->format('D');
+            $weeklyLabels[] = $date->locale($locale)->translatedFormat('D');
             $weeklyOrders[] = (int) ($weeklyGrouped[$dayKey] ?? 0);
             $weeklyRevenue[] = (float) ($weeklyRevenueGrouped[$dayKey] ?? 0);
         }
@@ -89,13 +93,14 @@ class DashboardController extends Controller
         $monthTotals = Order::query()
             ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month_key, COALESCE(SUM(total), 0) as month_total")
             ->where('created_at', '>=', $monthWindowStart)
+            ->where('status', '!=', Order::STATUS_CANCELLED)
             ->groupBy('month_key')
             ->pluck('month_total', 'month_key')
             ->all();
 
         for ($i = 6; $i >= 0; $i--) {
             $month = $now->copy()->subMonths($i);
-            $monthLabels[] = $month->format('M');
+            $monthLabels[] = $month->locale($locale)->translatedFormat('M');
             $currentKey = $month->format('Y-m');
             $previousKey = $month->copy()->subYear()->format('Y-m');
 
@@ -105,8 +110,19 @@ class DashboardController extends Controller
 
         $currentMonthTotal = $currentYearSeries[count($currentYearSeries) - 1] ?? 0;
         $previousMonthTotal = $currentYearSeries[count($currentYearSeries) - 2] ?? 0;
-        $growth = $previousMonthTotal > 0 ? (int) round(($currentMonthTotal / $previousMonthTotal) * 100) : 0;
-        $growth = min(max($growth, 0), 100);
+        if ($previousMonthTotal > 0) {
+            $growthRaw = (($currentMonthTotal - $previousMonthTotal) / $previousMonthTotal) * 100;
+        } elseif ($currentMonthTotal > 0) {
+            $growthRaw = 100.0;
+        } else {
+            $growthRaw = 0.0;
+        }
+
+        $growthDisplay = round($growthRaw, 1);
+        $growthForChart = min(max((int) round(abs($growthRaw)), 0), 100);
+        $growthDirection = $growthRaw >= 0 ? 'up' : 'down';
+        $currentYear = (int) $now->year;
+        $previousYear = (int) $now->copy()->subYear()->year;
 
         $profileReportSeries = array_slice($currentYearSeries, -6);
         $incomeSeries = $currentYearSeries;
@@ -147,7 +163,11 @@ class DashboardController extends Controller
 
         $topProductIds = $topProducts->pluck('product_id')->filter()->unique()->values();
         $latestItems = OrderItem::query()
-            ->with(['order.payments'])
+            ->with(['order.payments' => function ($query): void {
+                $query
+                    ->orderByRaw('COALESCE(paid_at, created_at) DESC')
+                    ->orderByDesc('id');
+            }])
             ->whereIn('product_id', $topProductIds)
             ->latest('id')
             ->get()
@@ -157,7 +177,8 @@ class DashboardController extends Controller
         $topProducts = $topProducts->map(function ($item) use ($latestItems) {
             $latestItem = $latestItems->get($item->product_id);
             $item->latestOrder = $latestItem?->order;
-            $item->latestPayment = $latestItem?->order?->payments?->first();
+            $item->latestPayment = $latestItem?->order?->payments?->firstWhere('status', 'paid')
+                ?? $latestItem?->order?->payments?->first();
 
             return $item;
         });
@@ -172,7 +193,11 @@ class DashboardController extends Controller
             'monthLabels',
             'currentYearSeries',
             'previousYearSeries',
-            'growth',
+            'growthDisplay',
+            'growthForChart',
+            'growthDirection',
+            'currentYear',
+            'previousYear',
             'profileReportSeries',
             'incomeSeries',
             'orderStatistics',

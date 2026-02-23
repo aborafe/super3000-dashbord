@@ -62,7 +62,7 @@ class AppServiceProvider extends ServiceProvider
 
         Order::observe(OrderObserver::class);
         ProductStock::observe(ProductStockObserver::class);
-        URL::defaults(['locale' => config('app.locale', 'en')]);
+        URL::defaults(['locale' => config('app.locale', 'ar')]);
         Paginator::useBootstrapFive();
 
         View::composer(['layouts.admin', 'layouts.blank'], function ($view): void {

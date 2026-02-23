@@ -9,6 +9,17 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Sanctum\HasApiTokens;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string|null $email
+ * @property string|null $phone
+ * @property string|null $whatsapp
+ * @property string|null $city
+ * @property string|null $address
+ * @property bool $is_active
+ * @property string|null $token
+ */
 class Customer extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
@@ -17,6 +28,9 @@ class Customer extends Authenticatable
         'name',
         'email',
         'phone',
+        'whatsapp',
+        'city',
+        'address',
         'password',
         'is_active',
         'token',
@@ -36,23 +50,41 @@ class Customer extends Authenticatable
         return $this->hasMany(Order::class);
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function paymentAllocations(): HasMany
+    {
+        return $this->hasMany(PaymentAllocation::class);
+    }
+
     public function receivesBroadcastNotificationsOn(): string
     {
         return 'customer.'.$this->getKey();
     }
 
     /**
-     * Compute the customer's balance: positive means owes money, negative means credit.
-     *
-     * @return float
+     * Customer balance convention:
+     * negative => debtor, positive => creditor.
      */
     public function getBalanceAttribute(): float
     {
-        $totalOrders = $this->orders()->sum('total');
-        $totalPayments = \App\Models\Payment::whereHas('order', function ($q) {
-            $q->where('customer_id', $this->id);
-        })->sum('amount');
+        return (float) ($this->paid_total - $this->invoice_total);
+    }
 
-        return (float) ($totalOrders - $totalPayments);
+    public function getInvoiceTotalAttribute(): float
+    {
+        return (float) $this->orders()
+            ->where('status', '!=', Order::STATUS_CANCELLED)
+            ->sum('total');
+    }
+
+    public function getPaidTotalAttribute(): float
+    {
+        return (float) $this->payments()
+            ->where('status', 'paid')
+            ->sum('amount');
     }
 }

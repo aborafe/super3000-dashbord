@@ -72,9 +72,9 @@
                 <i class="icon-base bx bx-export me-1"></i>{{ __('Export') }}
               </button>
               <div class="dropdown-menu">
-                <a class="dropdown-item" href="javascript:void(0);">CSV</a>
-                <a class="dropdown-item" href="javascript:void(0);">Excel</a>
-                <a class="dropdown-item" href="javascript:void(0);">PDF</a>
+                <a class="dropdown-item" href="javascript:void(0);">{{ __('CSV') }}</a>
+                <a class="dropdown-item" href="javascript:void(0);">{{ __('Excel') }}</a>
+                <a class="dropdown-item" href="javascript:void(0);">{{ __('PDF') }}</a>
               </div>
             </div>
           </div>
@@ -87,6 +87,7 @@
                 <th>{{ __('Invoice') }}</th>
                 <th>{{ __('Customer') }}</th>
                 <th>{{ __('Amount') }}</th>
+                <th>{{ __('Discount') }}</th>
                 <th>{{ __('Status') }}</th>
                 <th>{{ __('Date') }}</th>
                 <th>{{ __('Actions') }}</th>
@@ -116,15 +117,18 @@
                       <span>-</span>
                     @endif
                   </td>
-                  <td>${{ number_format($order->total, 2) }}</td>
+                  <td>{{ money($order->total, 2) }}</td>
+                  <td class="{{ (float) $order->items_discount_total > 0 ? 'text-danger fw-semibold' : 'text-muted' }}">
+                    {{ (float) $order->items_discount_total > 0 ? money($order->items_discount_total, 2) : '' }}
+                  </td>
                   <td><span class="badge {{ $badge }}">{{ __(ucfirst($normalizedStatus)) }}</span></td>
                   <td>{{ $order->created_at?->format('Y-m-d') }}</td>
                   <td>
                     <div class="d-inline-flex align-items-center gap-1">
-                      <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-outline-secondary">
+                      <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-outline-secondary btn-icon-soft">
                         <i class="icon-base bx bx-show"></i>
                       </a>
-                      <a href="{{ route('admin.invoices.print', $order) }}" class="btn btn-sm btn-outline-primary">
+                      <a href="{{ route('admin.invoices.print', $order) }}" class="btn btn-sm btn-outline-primary btn-icon-soft">
                         <i class="icon-base bx bx-printer"></i>
                       </a>
                     </div>
@@ -132,7 +136,7 @@
                 </tr>
               @empty
                 <tr>
-                  <td colspan="6" class="text-center text-muted">{{ __('No data.') }}</td>
+                  <td colspan="7" class="text-center text-muted">{{ __('No data.') }}</td>
                 </tr>
               @endforelse
             </tbody>
@@ -148,3 +152,4 @@
     </div>
   </div>
 @endsection
+

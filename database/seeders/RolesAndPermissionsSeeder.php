@@ -47,6 +47,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'notifications.send',
 
             'payments.view',
+            'payments.create',
 
             'inventory.view',
             'inventory.create',
@@ -61,7 +62,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'users.update',
 
             'roles.view',
+            'roles.create',
             'roles.update',
+            'roles.delete',
 
             'activity_logs.view',
 
@@ -86,7 +89,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'customers.view', 'customers.create', 'customers.update',
                 'orders.view', 'orders.update', 'orders.change_status',
                 'notifications.view', 'notifications.send',
-                'payments.view',
+                'payments.view', 'payments.create',
                 'inventory.view', 'inventory.create',
                 'warehouses.view', 'warehouses.create', 'warehouses.update',
                 'reports.view',

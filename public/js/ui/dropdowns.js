@@ -46,6 +46,7 @@ const renderNotificationItem = (notification, indexUrl, csrfToken, markReadTitle
   const title = escapeHtml(notification.title);
   const message = escapeHtml(notification.message);
   const createdAt = escapeHtml(notification.created_at_human);
+  const showUrl = escapeHtml(notification.show_url || indexUrl);
   const markReadUrl = escapeHtml(notification.mark_read_url);
   const readForm = isRead
     ? ''
@@ -71,7 +72,7 @@ const renderNotificationItem = (notification, indexUrl, csrfToken, markReadTitle
             </span>
           </div>
         </div>
-        <a href="${escapeHtml(indexUrl)}" class="flex-grow-1 text-body text-decoration-none">
+        <a href="${showUrl}" class="flex-grow-1 text-body text-decoration-none">
           <h6 class="mb-1">${title}</h6>
           <small class="text-muted d-block">${message}</small>
           <div class="small text-muted">${createdAt}</div>

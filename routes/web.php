@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect('/' . config('app.locale', 'en'));
+    return redirect('/' . config('app.locale', 'ar'));
 });
 
 Broadcast::routes([
@@ -73,6 +73,9 @@ Route::prefix('{locale}/admin')
         Route::get('orders', [OrderController::class, 'index'])
             ->middleware('can:orders.view')
             ->name('orders.index');
+        Route::get('orders/live', [OrderController::class, 'live'])
+            ->middleware('can:orders.view')
+            ->name('orders.live');
         Route::get('orders/{order}', [OrderController::class, 'show'])
             ->middleware('can:orders.view')
             ->name('orders.show');
@@ -85,6 +88,9 @@ Route::prefix('{locale}/admin')
         Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])
             ->middleware('can:orders.change_status')
             ->name('orders.status');
+        Route::post('orders/{order}/payments', [OrderController::class, 'storePayment'])
+            ->middleware('can:payments.create')
+            ->name('orders.payments.store');
 
         Route::get('invoices', [InvoiceController::class, 'index'])
             ->middleware('can:orders.view')
@@ -114,6 +120,10 @@ Route::prefix('{locale}/admin')
         Route::post('notifications/send', [NotificationController::class, 'send'])
             ->middleware('can:notifications.send')
             ->name('notifications.send');
+        Route::get('notifications/{notification}', [NotificationController::class, 'show'])
+            ->middleware('can:notifications.view')
+            ->whereUuid('notification')
+            ->name('notifications.show');
         Route::patch('notifications/read-all', [NotificationController::class, 'markAllAsRead'])
             ->middleware('can:notifications.view')
             ->name('notifications.read-all');
@@ -183,6 +193,12 @@ Route::prefix('{locale}/admin')
             Route::resource('customers', CustomerController::class)
                 ->only(['destroy'])
                 ->middleware('can:customers.delete');
+            Route::post('customers/{customer}/payments', [CustomerController::class, 'storePayment'])
+                ->middleware('can:payments.create')
+                ->name('customers.payments.store');
+            Route::get('customers/{customer}/ledger', [CustomerController::class, 'ledger'])
+                ->middleware('can:customers.view')
+                ->name('customers.ledger');
 
             Route::get('orders', [OrderController::class, 'index'])
                 ->middleware('can:orders.view')
@@ -226,12 +242,21 @@ Route::prefix('{locale}/admin')
             Route::get('roles', [RoleController::class, 'index'])
                 ->middleware('can:roles.view')
                 ->name('roles.index');
+            Route::get('roles/create', [RoleController::class, 'create'])
+                ->middleware('can:roles.create')
+                ->name('roles.create');
+            Route::post('roles', [RoleController::class, 'store'])
+                ->middleware('can:roles.create')
+                ->name('roles.store');
             Route::get('roles/{role}/edit', [RoleController::class, 'edit'])
                 ->middleware('can:roles.view')
                 ->name('roles.edit');
             Route::put('roles/{role}', [RoleController::class, 'update'])
                 ->middleware('can:roles.update')
                 ->name('roles.update');
+            Route::delete('roles/{role}', [RoleController::class, 'destroy'])
+                ->middleware('can:roles.delete')
+                ->name('roles.destroy');
             Route::get('activity-logs', [ActivityLogController::class, 'index'])
                 ->middleware('can:activity_logs.view')
                 ->name('activity.index');
@@ -250,6 +275,9 @@ Route::prefix('{locale}/admin')
             Route::put('users/{user}', [UserController::class, 'update'])
                 ->middleware('can:users.update')
                 ->name('users.update');
+            Route::patch('users/{user}/password', [UserController::class, 'updatePassword'])
+                ->middleware('can:users.update')
+                ->name('users.password');
             Route::get('users/{user}', [UserController::class, 'show'])
                 ->middleware('can:users.view')
                 ->name('users.show');
@@ -280,5 +308,5 @@ Route::prefix('{locale}/admin')
     });
 
 Route::get('/admin/{path?}', function ($path = 'dashboard') {
-    return redirect('/en/admin/' . ltrim($path, '/'));
+    return redirect('/' . config('app.locale', 'ar') . '/admin/' . ltrim($path, '/'));
 })->where('path', '.*');

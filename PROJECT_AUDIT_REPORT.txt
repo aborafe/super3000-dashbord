@@ -1,0 +1,146 @@
+PROJECT AUDIT REPORT
+Generated: 2026-02-13
+Project: super3000-backend
+
+1) Executive Summary
+- A full pass was performed over routes, controllers, Blade views, UI scripts, auth flows, dependencies, and migrations.
+- Critical runtime and routing issues were fixed to restore end-to-end dashboard stability.
+- API auth endpoints were restored for Sanctum (`/api/v1/auth/login`, `/api/v1/auth/logout`) with input validation and throttling on login.
+- Sidebar and dashboard navigation paths were normalized to use named routes and legacy aliases where required.
+- UI success sound effect support was integrated with accessibility controls (reduced motion + local setting).
+- Test suite is green after fixes.
+
+2) Total Issues Found (by severity)
+- High: 3
+- Medium: 7
+- Low: 6
+
+High findings summary:
+- Admin product index query used `having` on `withCount` aggregate path that fails on SQLite in tests (caused HTTP 500).
+- Missing practical API auth surface for Sanctum login/logout path in v1 routes.
+- Security users CRUD links existed in UI layer without matching route endpoints (broken action paths).
+
+3) Security Findings + Fixes Applied
+Findings:
+- API auth login/logout paths were missing from active `routes/api.php`.
+- Logout in admin navbar needed explicit POST+CSRF flow.
+- Sensitive areas still rely on locale middleware without strict auth/permission middleware at route group level (residual risk).
+
+Fixes applied:
+- Added `api/v1/auth/login` + `api/v1/auth/logout` routes.
+- Added `App\Http\Controllers\Api\V1\AuthController`:
+  - validated login payload
+  - `Auth::attempt` credential check
+  - Sanctum token issuance
+  - current token revocation on logout
+- Added admin logout POST route and wired dropdown form with CSRF.
+- Restored security users CRUD endpoints (`admin.security.users.*`) to real controller actions.
+
+Residual security risks (not auto-enforced to avoid breaking current flows):
+- Admin web route group is not globally guarded by `auth` + `permission` middleware.
+- `.env` is local-mode (`APP_DEBUG=true`) and must be switched off in production.
+
+4) Performance Findings + Optimizations Applied
+Findings:
+- Product stats query for affiliate customers used a DB-specific pattern that failed on test DB engine.
+- Dashboard had a variable-order bug in cancel-rate calculation (`$ordersCount` referenced before assignment).
+- Several dashboard/report aggregates are heavy but acceptable for current scale.
+
+Fixes applied:
+- Replaced affiliate customer query with DB-portable relation count:
+  - `Customer::query()->has('orders', '>', 1)->count()`
+- Fixed dashboard cancel-rate calculation ordering.
+- Kept existing dashboard cache usage (`Cache::remember('dashboard.stats', 1 minute)`).
+
+Before/after notes:
+- Before: feature test failure + 500 on products index in SQLite.
+- After: full test suite passes; index path stable across SQLite/MySQL.
+
+5) Dependency Risk Analysis (High/Medium/Low)
+Composer direct dependencies observed:
+- laravel/framework v12.48.1 (Low)
+- laravel/sanctum v4.3.0 (Low)
+- spatie/laravel-permission v6.24.0 (Low)
+- phpunit/phpunit 11.5.48 (Low)
+- faker/mockery/collision/pint/pail/sail/tinker (Low)
+
+Node dependencies observed:
+- build@0.1.4 (Medium)
+- run@1.5.0 (Medium)
+- npm@11.9.0 as project dependency (High)
+
+Recommendation:
+- Remove `npm` package from runtime dependencies (CLI package should not be an app dependency).
+- Keep frontend stack static (Sneat + Bootstrap + vanilla JS) and avoid adding build-chain dependencies if not used.
+
+6) DB Audit (migrations, indexes, recommendations)
+Observed migrations include core business tables + spatie + sanctum + settings/activity logs.
+
+Good:
+- Most relational tables include FK constraints and useful composite indexes.
+- `activity_logs` and `settings` include lookup indexes.
+
+Issues:
+- `personal_access_tokens` migration includes nonstandard guard logic (`Schema::hasTable`) and commented legacy index note.
+- Historical migration naming still includes `partners` while runtime model moved to customer semantics (maintainability concern).
+
+Recommendations:
+- Keep existing data model stable; avoid destructive migration rewrites.
+- Add explicit production index review on:
+  - `orders(order_no)` uniqueness if business rules require
+  - `payments(status, paid_at)` query profile review
+  - `activity_logs(created_at)` if timeline pages scale.
+
+7) Navigation & UI Fixes
+Applied:
+- Restored route compatibility between `/admin/products` and legacy `/admin/catalog/products` names.
+- Ensured product create/update/delete redirect to the matching route namespace (catalog vs top-level).
+- Replaced broken security user redirects with full CRUD routes.
+- Kept navigation browser-native (`<a href>` routes) while JS remains UI-only.
+- Added Web Audio success SFX module with toggle (`localStorage: sfx = on/off`) and reduced-motion respect.
+
+8) Removed / Refactored Code List
+- Refactored product affiliate metrics query away from DB-fragile `having` pattern.
+- Refactored product redirect logic into route-aware helper.
+- Replaced security users redirect placeholders with real route endpoints.
+- Removed dependency on external GitHub button script from admin layout (unnecessary external script load).
+
+9) Changed Files List (full paths)
+- app/Http/Controllers/Admin/ProductController.php
+- app/Http/Controllers/Admin/DashboardController.php
+- app/Http/Controllers/Api/V1/AuthController.php
+- routes/web.php
+- routes/api.php
+- resources/views/layouts/admin.blade.php
+- resources/views/admin/products/index.blade.php
+- resources/views/admin/orders/show.blade.php
+- resources/views/admin/invoices/index.blade.php
+- resources/views/admin/users/show.blade.php
+- public/js/app.js
+- public/js/ui/sfx.js
+
+10) Test Checklist (manual + automated)
+Automated executed:
+- `php artisan test` => PASS (8 tests, 23 assertions)
+- `php artisan route:list --path=admin` => PASS
+- `php artisan route:list --path=api` => PASS
+- `php artisan route:list --path=security/users` => PASS
+- `php artisan view:clear` => PASS
+
+Manual checklist:
+- Verify sidebar links open real pages (left click, ctrl+click, middle click).
+- Verify product create/edit/delete returns to expected namespace page.
+- Verify security users list/create/edit/update flows.
+- Verify API login returns Sanctum token and logout invalidates current token.
+- Verify SFX toggle in user dropdown and reduced-motion behavior.
+
+11) System Health Score (0-100)
+Score: 84/100
+Reasoning:
+- + Stable routes/controllers/views for core admin flows.
+- + Automated tests pass after fixes.
+- + API auth and logout flows restored.
+- + Runtime query bug and dashboard bug fixed.
+- - Admin web routes still need strict auth/permission middleware hardening for production.
+- - Node dependency list contains unnecessary runtime packages.
+- - CSP policy/headers and production hardening still need environment-level finalization.

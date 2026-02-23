@@ -1,25 +1,25 @@
-@php($locale = app()->getLocale())
-@php($themeClass = ($appearanceTheme ?? 'light') === 'dark' ? 'dark-style' : 'light-style')
-@php($dir = $locale === 'ar' || !empty($appearanceRtl) ? 'rtl' : 'ltr')
-@php($currentRoute = request()->route())
-@php($routeName = $currentRoute?->getName())
-@php($routeParams = $currentRoute?->parameters() ?? [])
-@php($queryParams = request()->query())
-@php($langEnUrl = $routeName ? route($routeName, array_merge($routeParams, $queryParams, ['locale' => 'en'])) : route('admin.dashboard', ['locale' => 'en']))
-@php($langArUrl = $routeName ? route($routeName, array_merge($routeParams, $queryParams, ['locale' => 'ar'])) : route('admin.dashboard', ['locale' => 'ar']))
-@php($authUser = auth()->user())
-@php($headerNotifications = $authUser ? $authUser->notifications()->latest()->limit(5)->get() : collect())
-@php($unreadNotificationsCount = $authUser ? $authUser->unreadNotifications()->count() : 0)
-@php($broadcastDriver = (string) config('broadcasting.default', 'null'))
-@php($broadcastConnection = (array) config("broadcasting.connections.{$broadcastDriver}", []))
-@php($broadcastOptions = (array) ($broadcastConnection['options'] ?? []))
-@php($realtimeEnabled = in_array($broadcastDriver, ['reverb', 'pusher'], true))
-@php($realtimeHost = (string) ($broadcastOptions['host'] ?? request()->getHost()))
-@php($realtimePort = (int) ($broadcastOptions['port'] ?? 80))
-@php($realtimeScheme = (string) ($broadcastOptions['scheme'] ?? 'http'))
-@php($realtimeKey = (string) ($broadcastConnection['key'] ?? ''))
-@php($realtimeChannel = $authUser ? 'user.' . $authUser->getKey() : '')
-@php($realtimeAuthEndpoint = url('/broadcasting/auth'))
+@php $locale = app()->getLocale(); @endphp
+@php $themeClass = ($appearanceTheme ?? 'light') === 'dark' ? 'dark-style' : 'light-style'; @endphp
+@php $dir = $locale === 'ar' || !empty($appearanceRtl) ? 'rtl' : 'ltr'; @endphp
+@php $currentRoute = request()->route(); @endphp
+@php $routeName = $currentRoute?->getName(); @endphp
+@php $routeParams = $currentRoute?->parameters() ?? []; @endphp
+@php $queryParams = request()->query(); @endphp
+@php $langEnUrl = $routeName ? route($routeName, array_merge($routeParams, $queryParams, ['locale' => 'en'])) : route('admin.dashboard', ['locale' => 'en']); @endphp
+@php $langArUrl = $routeName ? route($routeName, array_merge($routeParams, $queryParams, ['locale' => 'ar'])) : route('admin.dashboard', ['locale' => 'ar']); @endphp
+@php $authUser = auth()->user(); @endphp
+@php $headerNotifications = $authUser ? $authUser->notifications()->latest()->limit(5)->get() : collect(); @endphp
+@php $unreadNotificationsCount = $authUser ? $authUser->unreadNotifications()->count() : 0; @endphp
+@php $broadcastDriver = (string) config('broadcasting.default', 'null'); @endphp
+@php $broadcastConnection = (array) config("broadcasting.connections.{$broadcastDriver}", []); @endphp
+@php $broadcastOptions = (array) ($broadcastConnection['options'] ?? []); @endphp
+@php $realtimeEnabled = in_array($broadcastDriver, ['reverb', 'pusher'], true); @endphp
+@php $realtimeHost = (string) ($broadcastOptions['host'] ?? request()->getHost()); @endphp
+@php $realtimePort = (int) ($broadcastOptions['port'] ?? 80); @endphp
+@php $realtimeScheme = (string) ($broadcastOptions['scheme'] ?? 'http'); @endphp
+@php $realtimeKey = (string) ($broadcastConnection['key'] ?? ''); @endphp
+@php $realtimeChannel = $authUser ? 'user.' . $authUser->getKey() : ''; @endphp
+@php $realtimeAuthEndpoint = url('/broadcasting/auth'); @endphp
 <!doctype html>
 
 <html lang="{{ $locale }}" dir="{{ $dir }}" class="layout-menu-fixed layout-compact {{ $themeClass }}"
@@ -187,147 +187,181 @@
                 <div class="menu-inner-shadow"></div>
 
                 <ul class="menu-inner py-1">
-                    <li class="menu-item{{ request()->routeIs('admin.dashboard') ? ' active' : '' }}">
-                        <a href="{{ route('admin.dashboard', ['locale' => $locale]) }}" class="menu-link">
-                            <i class="menu-icon tf-icons bx bx-home-smile"></i>
-                            <div class="text-truncate" data-i18n="Dashboard">{{ __('Dashboard') }}</div>
-                        </a>
-                    </li>
+                    @can('dashboard.view')
+                        <li class="menu-item{{ request()->routeIs('admin.dashboard') ? ' active' : '' }}">
+                            <a href="{{ route('admin.dashboard', ['locale' => $locale]) }}" class="menu-link">
+                                <i class="menu-icon tf-icons bx bx-home-smile"></i>
+                                <div class="text-truncate" data-i18n="Dashboard">{{ __('Dashboard') }}</div>
+                            </a>
+                        </li>
+                    @endcan
 
-                    <li
-                        class="menu-item{{ request()->routeIs('admin.orders.*', 'admin.sales.payments.*', 'admin.sales.customers.*') ? ' open active' : '' }}">
-                        <a href="#" class="menu-link menu-toggle" role="button" data-toggle="submenu">
-                            <i class="menu-icon tf-icons bx bx-cart"></i>
-                            <div class="text-truncate" data-i18n="Sales">{{ __('Sales') }}</div>
-                        </a>
-                        <ul class="menu-sub">
-                            <li class="menu-item{{ request()->routeIs('admin.orders.*') ? ' active' : '' }}">
-                                <a href="{{ route('admin.orders.index', ['locale' => $locale]) }}" class="menu-link">
-                                    <div class="text-truncate" data-i18n="Orders">{{ __('Orders') }}</div>
-                                </a>
-                            </li>
-                            <li class="menu-item{{ request()->routeIs('admin.sales.payments.*') ? ' active' : '' }}">
-                                <a href="{{ route('admin.sales.payments.index', ['locale' => $locale]) }}"
-                                    class="menu-link">
-                                    <div class="text-truncate" data-i18n="Payments">{{ __('Payments') }}</div>
-                                </a>
-                            </li>
-                            <li class="menu-item{{ request()->routeIs('admin.sales.customers.*') ? ' active' : '' }}">
-                                <a href="{{ route('admin.sales.customers.index', ['locale' => $locale]) }}"
-                                    class="menu-link">
-                                    <div class="text-truncate" data-i18n="Customers">{{ __('Customers') }}</div>
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
+                    @canany(['orders.view', 'payments.view', 'customers.view'])
+                        <li
+                            class="menu-item{{ request()->routeIs('admin.orders.*', 'admin.sales.payments.*', 'admin.sales.customers.*') ? ' open active' : '' }}">
+                            <a href="#" class="menu-link menu-toggle" role="button" data-toggle="submenu">
+                                <i class="menu-icon tf-icons bx bx-cart"></i>
+                                <div class="text-truncate" data-i18n="Sales">{{ __('Sales') }}</div>
+                            </a>
+                            <ul class="menu-sub">
+                                @can('orders.view')
+                                    <li class="menu-item{{ request()->routeIs('admin.orders.*') ? ' active' : '' }}">
+                                        <a href="{{ route('admin.orders.index', ['locale' => $locale]) }}" class="menu-link">
+                                            <div class="text-truncate" data-i18n="Orders">{{ __('Orders') }}</div>
+                                        </a>
+                                    </li>
+                                @endcan
+                                @can('payments.view')
+                                    <li class="menu-item{{ request()->routeIs('admin.sales.payments.*') ? ' active' : '' }}">
+                                        <a href="{{ route('admin.sales.payments.index', ['locale' => $locale]) }}"
+                                            class="menu-link">
+                                            <div class="text-truncate" data-i18n="Payments">{{ __('Payments') }}</div>
+                                        </a>
+                                    </li>
+                                @endcan
+                                @can('customers.view')
+                                    <li class="menu-item{{ request()->routeIs('admin.sales.customers.*') ? ' active' : '' }}">
+                                        <a href="{{ route('admin.sales.customers.index', ['locale' => $locale]) }}"
+                                            class="menu-link">
+                                            <div class="text-truncate" data-i18n="Customers">{{ __('Customers') }}</div>
+                                        </a>
+                                    </li>
+                                @endcan
+                            </ul>
+                        </li>
+                    @endcanany
 
-                    <li
-                        class="menu-item{{ request()->routeIs('admin.products.*', 'admin.catalog.categories.*', 'admin.catalog.inventory.*') ? ' open active' : '' }}">
-                        <a href="#" class="menu-link menu-toggle" role="button" data-toggle="submenu">
-                            <i class="menu-icon tf-icons bx bx-package"></i>
-                            <div class="text-truncate" data-i18n="Catalog">{{ __('Catalog') }}</div>
-                        </a>
-                        <ul class="menu-sub">
-                            <li class="menu-item{{ request()->routeIs('admin.products.*') ? ' active' : '' }}">
-                                <a href="{{ route('admin.products.index', ['locale' => $locale]) }}"
-                                    class="menu-link">
-                                    <div class="text-truncate" data-i18n="Products">{{ __('Products') }}</div>
-                                </a>
-                            </li>
-                            <li
-                                class="menu-item{{ request()->routeIs('admin.catalog.categories.*') ? ' active' : '' }}">
-                                <a href="{{ route('admin.catalog.categories.index', ['locale' => $locale]) }}"
-                                    class="menu-link">
-                                    <div class="text-truncate" data-i18n="Categories">{{ __('Categories') }}</div>
-                                </a>
-                            </li>
-                            <li
-                                class="menu-item{{ request()->routeIs('admin.catalog.inventory.*') ? ' active' : '' }}">
-                                <a href="{{ route('admin.catalog.inventory.index', ['locale' => $locale]) }}"
-                                    class="menu-link">
-                                    <div class="text-truncate" data-i18n="Inventory">{{ __('Inventory') }}</div>
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
+                    @canany(['products.view', 'categories.view', 'inventory.view'])
+                        <li
+                            class="menu-item{{ request()->routeIs('admin.products.*', 'admin.catalog.categories.*', 'admin.catalog.inventory.*') ? ' open active' : '' }}">
+                            <a href="#" class="menu-link menu-toggle" role="button" data-toggle="submenu">
+                                <i class="menu-icon tf-icons bx bx-package"></i>
+                                <div class="text-truncate" data-i18n="Catalog">{{ __('Catalog') }}</div>
+                            </a>
+                            <ul class="menu-sub">
+                                @can('products.view')
+                                    <li class="menu-item{{ request()->routeIs('admin.products.*') ? ' active' : '' }}">
+                                        <a href="{{ route('admin.products.index', ['locale' => $locale]) }}"
+                                            class="menu-link">
+                                            <div class="text-truncate" data-i18n="Products">{{ __('Products') }}</div>
+                                        </a>
+                                    </li>
+                                @endcan
+                                @can('categories.view')
+                                    <li
+                                        class="menu-item{{ request()->routeIs('admin.catalog.categories.*') ? ' active' : '' }}">
+                                        <a href="{{ route('admin.catalog.categories.index', ['locale' => $locale]) }}"
+                                            class="menu-link">
+                                            <div class="text-truncate" data-i18n="Categories">{{ __('Categories') }}</div>
+                                        </a>
+                                    </li>
+                                @endcan
+                                @can('inventory.view')
+                                    <li
+                                        class="menu-item{{ request()->routeIs('admin.catalog.inventory.*') ? ' active' : '' }}">
+                                        <a href="{{ route('admin.catalog.inventory.index', ['locale' => $locale]) }}"
+                                            class="menu-link">
+                                            <div class="text-truncate" data-i18n="Inventory">{{ __('Inventory') }}</div>
+                                        </a>
+                                    </li>
+                                @endcan
+                            </ul>
+                        </li>
+                    @endcanany
 
-                    <li
-                        class="menu-item{{ request()->routeIs('admin.operations.warehouses.*', 'admin.operations.reports.*') ? ' open active' : '' }}">
-                        <a href="#" class="menu-link menu-toggle" role="button" data-toggle="submenu">
-                            <i class="menu-icon tf-icons bx bx-buildings"></i>
-                            <div class="text-truncate" data-i18n="Operations">{{ __('Operations') }}</div>
-                        </a>
-                        <ul class="menu-sub">
-                            <li
-                                class="menu-item{{ request()->routeIs('admin.operations.warehouses.*') ? ' active' : '' }}">
-                                <a href="{{ route('admin.operations.warehouses.index', ['locale' => $locale]) }}"
-                                    class="menu-link">
-                                    <div class="text-truncate" data-i18n="Warehouses">{{ __('Warehouses') }}</div>
-                                </a>
-                            </li>
-                            <li
-                                class="menu-item{{ request()->routeIs('admin.operations.reports.*') ? ' active' : '' }}">
-                                <a href="{{ route('admin.operations.reports.index', ['locale' => $locale]) }}"
-                                    class="menu-link">
-                                    <div class="text-truncate" data-i18n="Reports">{{ __('Reports') }}</div>
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
+                    @canany(['warehouses.view', 'reports.view'])
+                        <li
+                            class="menu-item{{ request()->routeIs('admin.operations.warehouses.*', 'admin.operations.reports.*') ? ' open active' : '' }}">
+                            <a href="#" class="menu-link menu-toggle" role="button" data-toggle="submenu">
+                                <i class="menu-icon tf-icons bx bx-buildings"></i>
+                                <div class="text-truncate" data-i18n="Operations">{{ __('Operations') }}</div>
+                            </a>
+                            <ul class="menu-sub">
+                                @can('warehouses.view')
+                                    <li
+                                        class="menu-item{{ request()->routeIs('admin.operations.warehouses.*') ? ' active' : '' }}">
+                                        <a href="{{ route('admin.operations.warehouses.index', ['locale' => $locale]) }}"
+                                            class="menu-link">
+                                            <div class="text-truncate" data-i18n="Warehouses">{{ __('Warehouses') }}</div>
+                                        </a>
+                                    </li>
+                                @endcan
+                                @can('reports.view')
+                                    <li
+                                        class="menu-item{{ request()->routeIs('admin.operations.reports.*') ? ' active' : '' }}">
+                                        <a href="{{ route('admin.operations.reports.index', ['locale' => $locale]) }}"
+                                            class="menu-link">
+                                            <div class="text-truncate" data-i18n="Reports">{{ __('Reports') }}</div>
+                                        </a>
+                                    </li>
+                                @endcan
+                            </ul>
+                        </li>
+                    @endcanany
 
-                    <li
-                        class="menu-item{{ request()->routeIs('admin.users.*', 'admin.security.roles.*', 'admin.security.activity.*') ? ' open active' : '' }}">
-                        <a href="#" class="menu-link menu-toggle" role="button" data-toggle="submenu">
-                            <i class="menu-icon tf-icons bx bx-shield"></i>
-                            <div class="text-truncate" data-i18n="Users & Security">{{ __('Users & Security') }}
-                            </div>
-                        </a>
-                        <ul class="menu-sub">
-                            <li class="menu-item{{ request()->routeIs('admin.users.*') ? ' active' : '' }}">
-                                <a href="{{ route('admin.users.index', ['locale' => $locale]) }}" class="menu-link">
-                                    <div class="text-truncate" data-i18n="Users">{{ __('Users') }}</div>
-                                </a>
-                            </li>
-                            <li class="menu-item{{ request()->routeIs('admin.security.roles.*') ? ' active' : '' }}">
-                                <a href="{{ route('admin.security.roles.index', ['locale' => $locale]) }}"
-                                    class="menu-link">
-                                    <div class="text-truncate" data-i18n="Roles & Permissions">
-                                        {{ __('Roles & Permissions') }}</div>
-                                </a>
-                            </li>
-                            <li
-                                class="menu-item{{ request()->routeIs('admin.security.activity.*') ? ' active' : '' }}">
-                                <a href="{{ route('admin.security.activity.index', ['locale' => $locale]) }}"
-                                    class="menu-link">
-                                    <div class="text-truncate" data-i18n="Activity Logs">{{ __('Activity Logs') }}
-                                    </div>
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
+                    @canany(['users.view', 'roles.view', 'activity_logs.view'])
+                        <li
+                            class="menu-item{{ request()->routeIs('admin.users.*', 'admin.security.roles.*', 'admin.security.activity.*') ? ' open active' : '' }}">
+                            <a href="#" class="menu-link menu-toggle" role="button" data-toggle="submenu">
+                                <i class="menu-icon tf-icons bx bx-shield"></i>
+                                <div class="text-truncate" data-i18n="Users & Security">{{ __('Users & Security') }}
+                                </div>
+                            </a>
+                            <ul class="menu-sub">
+                                @can('users.view')
+                                    <li class="menu-item{{ request()->routeIs('admin.users.*') ? ' active' : '' }}">
+                                        <a href="{{ route('admin.users.index', ['locale' => $locale]) }}" class="menu-link">
+                                            <div class="text-truncate" data-i18n="Users">{{ __('Users') }}</div>
+                                        </a>
+                                    </li>
+                                @endcan
+                                @can('roles.view')
+                                    <li class="menu-item{{ request()->routeIs('admin.security.roles.*') ? ' active' : '' }}">
+                                        <a href="{{ route('admin.security.roles.index', ['locale' => $locale]) }}"
+                                            class="menu-link">
+                                            <div class="text-truncate" data-i18n="Roles & Permissions">
+                                                {{ __('Roles & Permissions') }}</div>
+                                        </a>
+                                    </li>
+                                @endcan
+                                @can('activity_logs.view')
+                                    <li
+                                        class="menu-item{{ request()->routeIs('admin.security.activity.*') ? ' active' : '' }}">
+                                        <a href="{{ route('admin.security.activity.index', ['locale' => $locale]) }}"
+                                            class="menu-link">
+                                            <div class="text-truncate" data-i18n="Activity Logs">{{ __('Activity Logs') }}
+                                            </div>
+                                        </a>
+                                    </li>
+                                @endcan
+                            </ul>
+                        </li>
+                    @endcanany
 
-                    <li class="menu-item{{ request()->routeIs('admin.settings.*') ? ' open active' : '' }}">
-                        <a href="#" class="menu-link menu-toggle" role="button" data-toggle="submenu">
-                            <i class="menu-icon tf-icons bx bx-cog"></i>
-                            <div class="text-truncate" data-i18n="Settings">{{ __('Settings') }}</div>
-                        </a>
-                        <ul class="menu-sub">
-                            <li class="menu-item{{ request()->routeIs('admin.settings.general') ? ' active' : '' }}">
-                                <a href="{{ route('admin.settings.general', ['locale' => $locale]) }}"
-                                    class="menu-link">
-                                    <div class="text-truncate" data-i18n="General Settings">
-                                        {{ __('General Settings') }}</div>
-                                </a>
-                            </li>
-                            <li
-                                class="menu-item{{ request()->routeIs('admin.settings.appearance') ? ' active' : '' }}">
-                                <a href="{{ route('admin.settings.appearance', ['locale' => $locale]) }}"
-                                    class="menu-link">
-                                    <div class="text-truncate" data-i18n="Appearance">{{ __('Appearance') }}</div>
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
+                    @can('settings.manage')
+                        <li class="menu-item{{ request()->routeIs('admin.settings.*') ? ' open active' : '' }}">
+                            <a href="#" class="menu-link menu-toggle" role="button" data-toggle="submenu">
+                                <i class="menu-icon tf-icons bx bx-cog"></i>
+                                <div class="text-truncate" data-i18n="Settings">{{ __('Settings') }}</div>
+                            </a>
+                            <ul class="menu-sub">
+                                <li class="menu-item{{ request()->routeIs('admin.settings.general') ? ' active' : '' }}">
+                                    <a href="{{ route('admin.settings.general', ['locale' => $locale]) }}"
+                                        class="menu-link">
+                                        <div class="text-truncate" data-i18n="General Settings">
+                                            {{ __('General Settings') }}</div>
+                                    </a>
+                                </li>
+                                <li
+                                    class="menu-item{{ request()->routeIs('admin.settings.appearance') ? ' active' : '' }}">
+                                    <a href="{{ route('admin.settings.appearance', ['locale' => $locale]) }}"
+                                        class="menu-link">
+                                        <div class="text-truncate" data-i18n="Appearance">{{ __('Appearance') }}</div>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    @endcan
                 </ul>
             </aside>
             <!-- / Menu -->
@@ -409,7 +443,8 @@
                                     </li>
                                 </ul>
                             </li>
-                            <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-2">
+                            @can('notifications.view')
+                                <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-2">
                                 <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);"
                                     data-bs-toggle="dropdown">
                                     <i class="icon-base bx bx-bell icon-md"></i>
@@ -458,10 +493,10 @@
                                         <ul class="list-group list-group-flush overflow-auto"
                                             style="max-height:320px;">
                                             @forelse ($headerNotifications as $notification)
-                                                @php($payload = is_array($notification->data) ? $notification->data : [])
-                                                @php($isRead = $notification->read_at !== null)
-                                                @php($title = (string) ($payload['title'] ?? class_basename($notification->type)))
-                                                @php($message = (string) ($payload['message'] ?? ''))
+                                                @php $payload = is_array($notification->data) ? $notification->data : []; @endphp
+                                                @php $isRead = $notification->read_at !== null; @endphp
+                                                @php $title = (string) ($payload['title'] ?? class_basename($notification->type)); @endphp
+                                                @php $message = (string) ($payload['message'] ?? ''); @endphp
                                                 <li
                                                     class="list-group-item list-group-item-action dropdown-notifications-item {{ $isRead ? 'is-read' : '' }}">
                                                     <div class="d-flex align-items-start">
@@ -473,7 +508,7 @@
                                                                 </span>
                                                             </div>
                                                         </div>
-                                                        <a href="{{ route('admin.notifications.index', ['locale' => $locale]) }}"
+                                                        <a href="{{ route('admin.notifications.show', ['locale' => $locale, 'notification' => $notification->id]) }}"
                                                             class="flex-grow-1 text-body text-decoration-none">
                                                             <h6 class="mb-1">{{ $title }}</h6>
                                                             <small
@@ -518,7 +553,8 @@
                                         </a>
                                     </li>
                                 </ul>
-                            </li>
+                                </li>
+                            @endcan
                             <!-- User -->
                             <li class="nav-item navbar-dropdown dropdown-user dropdown">
                                 <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);"
@@ -582,7 +618,7 @@
                                                 <i class="icon-base bx bx-volume-full icon-md me-3"></i><span
                                                     data-i18n="Sound Effects">{{ __('Sound Effects') }}</span>
                                             </span>
-                                            <span class="badge rounded-pill bg-label-primary" data-sfx-state>On</span>
+                                            <span class="badge rounded-pill bg-label-primary" data-sfx-state>{{ __('On') }}</span>
                                         </a>
                                     </li>
                                     <li>
@@ -696,3 +732,4 @@
 </body>
 
 </html>
+

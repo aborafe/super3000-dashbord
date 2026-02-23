@@ -1,0 +1,338 @@
+/* Admin UI overrides (keep minimal). */
+
+.order-timeline {
+  list-style: none;
+  margin: 0;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.order-timeline::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(67, 89, 113, 0.1);
+}
+
+.order-timeline-item {
+  position: relative;
+  padding-bottom: 1.5rem;
+}
+
+.order-timeline-item:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-point {
+  position: absolute;
+  left: -1px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #696cff;
+}
+
+.timeline-point-primary { background: #696cff; }
+.timeline-point-success { background: #71dd37; }
+.timeline-point-info { background: #03c3ec; }
+.timeline-point-danger { background: #ff3e1d; }
+
+.notification-dot {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  padding: 0 !important;
+  border-radius: 999px;
+}
+
+.dropdown-notifications-item.is-read .dropdown-notifications-actions {
+  opacity: 0;
+}
+
+.menu-pin-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid rgba(105, 108, 255, 0.25);
+  background: rgba(105, 108, 255, 0.08);
+  transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, opacity 0.3s ease, transform 0.3s ease;
+}
+
+.menu-pin-btn i {
+  font-size: 1.45rem;
+  line-height: 1;
+  transition: transform 0.3s ease;
+}
+
+.menu-pin-btn.is-pinned {
+  background: rgba(105, 108, 255, 0.18);
+  border-color: rgba(105, 108, 255, 0.45);
+}
+
+.menu-pin-btn.is-pinned i {
+  transform: rotate(-0deg) scale(1);
+}
+
+.menu-pin-btn:not(.is-pinned) i {
+  transform: rotate(0deg) scale(1);
+}
+
+.menu-pin-btn:focus-visible {
+  box-shadow: 0 0 0 0.2rem rgba(105, 108, 255, 0.3);
+}
+
+/* Unified icon chips and icon-only action buttons */
+.icon-chip {
+  --icon-chip-bg: rgba(105, 108, 255, 0.14);
+  --icon-chip-color: #696cff;
+  width: 2.1rem;
+  height: 2.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.65rem;
+  padding: 0 !important;
+  color: var(--icon-chip-color) !important;
+  background: var(--icon-chip-bg) !important;
+  border: 1px solid rgba(105, 108, 255, 0.24);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.icon-chip .icon-base {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.icon-chip-primary {
+  --icon-chip-bg: rgba(105, 108, 255, 0.14);
+  --icon-chip-color: #696cff;
+  border-color: rgba(105, 108, 255, 0.25);
+}
+
+.icon-chip-info {
+  --icon-chip-bg: rgba(3, 195, 236, 0.14);
+  --icon-chip-color: #03c3ec;
+  border-color: rgba(3, 195, 236, 0.25);
+}
+
+.icon-chip-success {
+  --icon-chip-bg: rgba(113, 221, 55, 0.16);
+  --icon-chip-color: #1a8f2e;
+  border-color: rgba(113, 221, 55, 0.28);
+}
+
+.icon-chip-warning {
+  --icon-chip-bg: rgba(255, 171, 0, 0.16);
+  --icon-chip-color: #b26a00;
+  border-color: rgba(255, 171, 0, 0.3);
+}
+
+.icon-chip-danger {
+  --icon-chip-bg: rgba(255, 62, 29, 0.14);
+  --icon-chip-color: #d93a1e;
+  border-color: rgba(255, 62, 29, 0.26);
+}
+
+.icon-chip-secondary {
+  --icon-chip-bg: rgba(133, 146, 163, 0.15);
+  --icon-chip-color: #566a7f;
+  border-color: rgba(133, 146, 163, 0.28);
+}
+
+.table-stats-strip .d-flex {
+  min-height: 86px;
+}
+
+.btn-icon-soft {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  border-radius: 0.55rem;
+}
+
+.btn-icon-soft .icon-base {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.btn-outline-secondary.btn-icon-soft {
+  color: #566a7f;
+  background: rgba(67, 89, 113, 0.05);
+  border-color: rgba(67, 89, 113, 0.22);
+}
+
+.btn-outline-secondary.btn-icon-soft:hover,
+.btn-outline-secondary.btn-icon-soft:focus-visible {
+  color: #fff;
+  background: #8592a3;
+  border-color: #8592a3;
+}
+
+.btn-outline-primary.btn-icon-soft {
+  color: #696cff;
+  background: rgba(105, 108, 255, 0.08);
+  border-color: rgba(105, 108, 255, 0.28);
+}
+
+.btn-outline-primary.btn-icon-soft:hover,
+.btn-outline-primary.btn-icon-soft:focus-visible {
+  color: #fff;
+  background: #696cff;
+  border-color: #696cff;
+}
+
+@media (min-width: 1200px) {
+  .layout-overlay {
+    display: none !important;
+    pointer-events: none !important;
+  }
+
+  .layout-menu,
+  .layout-page,
+  .layout-navbar,
+  .content-footer {
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1) !important;
+  }
+
+  .layout-transitioning .layout-menu,
+  .layout-transitioning .layout-page,
+  .layout-transitioning .layout-navbar,
+  .layout-transitioning .content-footer {
+    transition-duration: 0.42s !important;
+  }
+
+  .layout-menu-collapsed:not(.layout-menu-hover) .menu-pin-btn {
+    opacity: 0;
+    transform: scale(0.82);
+    pointer-events: none;
+  }
+
+  .layout-menu-hover .menu-pin-btn,
+  .menu-pin-btn.is-pinned {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+  }
+}
+
+.layout-wrapper,
+.layout-container,
+.layout-page,
+.content-wrapper {
+  min-width: 0;
+}
+
+.card,
+.table-responsive {
+  min-width: 0;
+}
+
+/* RTL responsive fixes */
+html[dir='rtl'] .layout-menu .menu-link,
+html[dir='rtl'] .layout-navbar .dropdown-menu {
+  text-align: right;
+}
+
+html[dir='rtl'] .layout-navbar .me-auto {
+  margin-right: 0 !important;
+  margin-left: auto !important;
+}
+
+html[dir='rtl'] .layout-navbar .ms-auto {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+html[dir='rtl'] .layout-navbar .navbar-nav-right {
+  min-width: 0;
+}
+
+html[dir='rtl'] .layout-navbar .navbar-nav.flex-row {
+  flex-wrap: nowrap;
+}
+
+@media (max-width: 1199.98px) {
+  html[dir='rtl'] .layout-menu {
+    inset-inline-start: auto !important;
+    inset-inline-end: 0 !important;
+    transform: translate3d(100%, 0, 0);
+  }
+
+  html[dir='rtl'].layout-menu-expanded .layout-menu {
+    transform: translate3d(0, 0, 0) !important;
+  }
+
+  .container-xxl {
+    max-width: 100%;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .layout-navbar.navbar-detached {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  html[dir='rtl'] .layout-navbar .navbar-nav.flex-row {
+    gap: 0.25rem;
+  }
+
+  .container-xxl {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .layout-navbar .navbar-nav.align-items-center.me-auto {
+    display: none !important;
+  }
+
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media print {
+  #layout-menu,
+  #layout-navbar,
+  .content-footer,
+  .layout-overlay,
+  .layout-menu-toggle,
+  .navbar-nav,
+  .navbar-nav-right {
+    display: none !important;
+  }
+
+  body,
+  .layout-wrapper,
+  .layout-page,
+  .content-wrapper,
+  .container-xxl {
+    background: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .card {
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
+
+/* Hide scrollbars inside notifications dropdown but keep scrolling functional */
+#notifications-list .list-group {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+#notifications-list .list-group::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}

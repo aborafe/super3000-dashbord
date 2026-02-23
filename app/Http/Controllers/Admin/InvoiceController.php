@@ -21,7 +21,12 @@ class InvoiceController extends Controller
         $perPage = in_array($perPage, [10, 25, 50], true) ? $perPage : 10;
 
         $invoices = Order::query()
-            ->with(['customer', 'payments'])
+            ->with([
+                'customer',
+                'payments',
+                'items:id,order_id,qty,price,base_price',
+            ])
+            ->withSum('paymentAllocations as paid_amount', 'amount')
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($inner) use ($search) {
                     $inner->where('order_no', 'like', '%' . $search . '%')
@@ -55,7 +60,7 @@ class InvoiceController extends Controller
                 'icon' => 'bx-time-five',
             ],
             [
-                'value' => '$' . number_format((float) Order::query()->sum('total'), 2),
+                'value' => money((float) Order::query()->sum('total')),
                 'label' => __('Total Invoiced'),
                 'icon' => 'bx-wallet',
             ],
@@ -66,8 +71,14 @@ class InvoiceController extends Controller
 
     public function print(Order $order): View
     {
-        $order->load(['customer', 'items.product', 'payments']);
-        $paidPayment = $order->payments->firstWhere('status', 'paid');
+        $order->load(['customer', 'items.product', 'payments', 'paymentAllocations.payment']);
+
+        $paidPayment = $order->paymentAllocations
+            ->sortByDesc(fn ($allocation) => $allocation->allocated_at ?? $allocation->created_at)
+            ->map(fn ($allocation) => $allocation->payment)
+            ->filter(fn ($payment) => $payment && $payment->status === 'paid')
+            ->first()
+            ?? $order->payments->firstWhere('status', 'paid');
 
         return view('admin.invoices.print', compact('order', 'paidPayment'));
     }

@@ -6,6 +6,7 @@ use App\Exceptions\StockConflictException;
 use App\Http\Requests\Api\V1\CreateOrderRequest;
 use App\Http\Resources\OrderResource;
 use App\Models\ActivityLog;
+use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Product;
 use App\Services\InventoryService;
@@ -30,6 +31,7 @@ class OrderController extends ApiController
         $orders = Order::query()
             ->where('customer_id', $customer->id)
             ->with(['customer', 'items.product'])
+            ->withSum('paymentAllocations as paid_amount', 'amount')
             ->latest('id')
             ->paginate($perPage)
             ->withQueryString();
@@ -44,11 +46,13 @@ class OrderController extends ApiController
 
     public function show(Order $order, Request $request): JsonResponse
     {
-        if ((int) $order->customer_id !== (int) $request->user()->id) {
+        $authIdentifier = $request->user()?->getAuthIdentifier();
+        $orderCustomerId = $order->getAttribute('customer_id');
+        if ((int) $orderCustomerId !== (int) ($authIdentifier ?? 0)) {
             throw new AuthorizationException('You are not allowed to access this order.');
         }
 
-        $order->loadMissing(['customer', 'items.product', 'payments']);
+        $order->loadMissing(['customer', 'items.product', 'payments', 'paymentAllocations']);
 
         return $this->success(new OrderResource($order), 200, 'Order fetched');
     }
@@ -84,7 +88,7 @@ class OrderController extends ApiController
                 ->first();
 
             if ($existingOrder) {
-                $existingOrder->load(['customer', 'items.product', 'payments']);
+                $existingOrder->load(['customer', 'items.product', 'payments', 'paymentAllocations']);
 
                 return $this->success(new OrderResource($existingOrder), 200, 'Order already exists');
             }
@@ -97,9 +101,8 @@ class OrderController extends ApiController
                 $inventory = app(InventoryService::class);
                 $defaultWarehouseId = $inventory->resolveDefaultWarehouseId();
                 $snapshotInput = $this->extractCheckoutContact($validated, $customer);
-                $requestedByProduct = collect($items)
-                    ->groupBy('productId')
-                    ->map(fn($group) => collect($group)->sum(fn($line) => (int) $line['quantity']));
+                $this->syncCustomerProfileFromCheckout($customer, $validated);
+                $requestedByProduct = $this->buildRequestedByProduct($items);
 
                 $products = Product::query()
                     ->whereIn('id', collect($items)->pluck('productId')->map(fn($id) => (int) $id)->all())
@@ -135,7 +138,7 @@ class OrderController extends ApiController
                     'status' => Order::STATUS_PENDING,
                     'subtotal' => 0,
                     'total' => 0,
-                ] + $this->customerSnapshotPayload($customer, $snapshotInput);
+                ] + $this->customerSnapshotPayload($snapshotInput);
 
                 if ($idempotencyKey !== null && $this->ordersTableHasColumn('idempotency_key')) {
                     $orderPayload['idempotency_key'] = $idempotencyKey;
@@ -154,6 +157,7 @@ class OrderController extends ApiController
                         'product_id' => $product->id,
                         'qty' => $qty,
                         'price' => $product->price,
+                        'base_price' => $product->price,
                         'cost' => $product->price,
                         'line_total' => $lineTotal,
                     ]);
@@ -183,7 +187,7 @@ class OrderController extends ApiController
                     ],
                 ]);
 
-                return $order->load(['customer', 'items.product', 'payments']);
+                return $order->load(['customer', 'items.product', 'payments', 'paymentAllocations']);
             });
 
             return $this->success(new OrderResource($order), 201, 'Order created');
@@ -199,7 +203,7 @@ class OrderController extends ApiController
                     ->first();
 
                 if ($existingOrder) {
-                    $existingOrder->load(['customer', 'items.product', 'payments']);
+                    $existingOrder->load(['customer', 'items.product', 'payments', 'paymentAllocations']);
 
                     return $this->success(new OrderResource($existingOrder), 200, 'Order already exists');
                 }
@@ -228,17 +232,54 @@ class OrderController extends ApiController
     }
 
     /**
+     * @param array<int, array<string, mixed>> $items
+     * @return array<int, int>
+     */
+    private function buildRequestedByProduct(array $items): array
+    {
+        $requestedByProduct = [];
+
+        foreach ($items as $item) {
+            $productId = (int) ($item['productId'] ?? 0);
+            $quantity = (int) ($item['quantity'] ?? 0);
+            if ($productId <= 0 || $quantity <= 0) {
+                continue;
+            }
+
+            if (! isset($requestedByProduct[$productId])) {
+                $requestedByProduct[$productId] = 0;
+            }
+
+            $requestedByProduct[$productId] += $quantity;
+        }
+
+        return $requestedByProduct;
+    }
+
+    /**
      * @param array<string, mixed> $validated
-     * @return array<string, string|null>
+     * @return array<string, mixed>
      */
     private function extractCheckoutContact(array $validated, object $customer): array
     {
         $checkout = is_array($validated['checkout'] ?? null) ? $validated['checkout'] : [];
+        $name = $this->firstFilledString([
+            $validated['name'] ?? null,
+            $checkout['name'] ?? null,
+            $customer->name ?? null,
+        ]);
 
         $address = $this->firstFilledString([
             $validated['address'] ?? null,
             $checkout['address'] ?? null,
             $checkout['shippingAddress'] ?? null,
+            $customer->address ?? null,
+        ]);
+
+        $city = $this->firstFilledString([
+            $validated['city'] ?? null,
+            $checkout['city'] ?? null,
+            $customer->city ?? null,
         ]);
 
         $notes = $this->firstFilledString([
@@ -261,15 +302,90 @@ class OrderController extends ApiController
         $whatsapp = $this->firstFilledString([
             $validated['whatsapp'] ?? null,
             $checkout['whatsapp'] ?? null,
+            $customer->whatsapp ?? null,
+        ]);
+
+        $shippingAddress = $this->normalizeAddressPayload(
+            $validated['shipping_address'] ?? ($checkout['shipping_address'] ?? null),
+            $address,
+            $city
+        );
+        $shippingAddressFromText = $this->normalizeAddressPayload($checkout['shippingAddress'] ?? null, $address, $city);
+        if ($shippingAddress === null && $shippingAddressFromText !== null) {
+            $shippingAddress = $shippingAddressFromText;
+        }
+
+        $billingAddress = $this->normalizeAddressPayload(
+            $validated['billing_address'] ?? ($checkout['billing_address'] ?? null),
+            null,
+            null
+        );
+        $billingAddressFromText = $this->normalizeAddressPayload($checkout['billingAddress'] ?? null, null, $city);
+        if ($billingAddress === null && $billingAddressFromText !== null) {
+            $billingAddress = $billingAddressFromText;
+        }
+        if ($billingAddress === null) {
+            $billingAddress = $shippingAddress;
+        }
+
+        $billingPaymentMethod = $this->firstFilledString([
+            $validated['billing_payment_method'] ?? null,
+            $checkout['billing_payment_method'] ?? null,
         ]);
 
         return [
+            'name' => $name,
             'address' => $address,
+            'city' => $city,
             'notes' => $notes,
             'email' => $email,
             'phone' => $phone,
             'whatsapp' => $whatsapp,
+            'shipping_address' => $shippingAddress,
+            'billing_address' => $billingAddress,
+            'billing_payment_method' => $billingPaymentMethod,
         ];
+    }
+
+    private function normalizeAddressPayload(mixed $value, ?string $fallbackAddress, ?string $fallbackCity): ?array
+    {
+        $addressLine = null;
+        $city = null;
+
+        if (is_string($value)) {
+            $trimmed = trim($value);
+            if ($trimmed !== '') {
+                $addressLine = $trimmed;
+            }
+        }
+
+        if (is_array($value)) {
+            $addressLine = $this->firstFilledString([
+                $value['address_line_1'] ?? null,
+                $value['address'] ?? null,
+                $value['street'] ?? null,
+            ]) ?? $addressLine;
+
+            $city = $this->firstFilledString([
+                $value['city'] ?? null,
+                $value['address_city'] ?? null,
+            ]) ?? $city;
+        }
+
+        $addressLine = $addressLine ?? $fallbackAddress;
+        $city = $city ?? $fallbackCity;
+
+        $payload = [];
+
+        if (is_string($addressLine) && trim($addressLine) !== '') {
+            $payload['address_line_1'] = trim($addressLine);
+        }
+
+        if (is_string($city) && trim($city) !== '') {
+            $payload['city'] = trim($city);
+        }
+
+        return $payload !== [] ? $payload : null;
     }
 
     /**
@@ -292,9 +408,9 @@ class OrderController extends ApiController
     }
 
     /**
-     * @param array<string, string|null> $snapshotInput
+     * @param array<string, mixed> $snapshotInput
      */
-    private function customerSnapshotPayload(object $customer, array $snapshotInput): array
+    private function customerSnapshotPayload(array $snapshotInput): array
     {
         $order = new Order();
         $table = $order->getTable();
@@ -312,38 +428,32 @@ class OrderController extends ApiController
 
         $payload = [];
 
-        if (in_array('customer_name', $columns, true)) {
-            $payload['customer_name'] = $customer->name;
-        }
-        if (in_array('customer_email', $columns, true)) {
-            $payload['customer_email'] = $snapshotInput['email'];
-        }
-        if (in_array('customer_phone', $columns, true)) {
-            $payload['customer_phone'] = $snapshotInput['phone'];
-        }
-        if (in_array('customer_whatsapp', $columns, true)) {
-            $payload['customer_whatsapp'] = $snapshotInput['whatsapp'];
-        }
-        if (in_array('customer_address', $columns, true)) {
-            $payload['customer_address'] = $snapshotInput['address'];
-        }
         if (in_array('customer_notes', $columns, true)) {
             $payload['customer_notes'] = $snapshotInput['notes'];
         }
-        if (in_array('shipping_address', $columns, true) && is_string($snapshotInput['address']) && $snapshotInput['address'] !== '') {
-            $payload['shipping_address'] = [
-                'address_line_1' => $snapshotInput['address'],
-            ];
+        if (in_array('shipping_address', $columns, true)) {
+            $shippingAddressPayload = is_array($snapshotInput['shipping_address'] ?? null)
+                ? $snapshotInput['shipping_address']
+                : $this->normalizeAddressPayload($snapshotInput['address'] ?? null, null, $snapshotInput['city'] ?? null);
+
+            if (is_array($shippingAddressPayload) && $shippingAddressPayload !== []) {
+                $payload['shipping_address'] = $shippingAddressPayload;
+            }
         }
+        if (in_array('billing_address', $columns, true)) {
+            $billingAddressPayload = is_array($snapshotInput['billing_address'] ?? null)
+                ? $snapshotInput['billing_address']
+                : null;
 
-        $requiredSnapshotColumns = ['customer_name', 'customer_email', 'customer_phone'];
-        $missingColumns = array_values(array_diff($requiredSnapshotColumns, $columns));
-
-        if ($missingColumns !== []) {
-            Log::warning('api.orders.snapshot_columns_missing', [
-                'table' => $table,
-                'missing_columns' => $missingColumns,
-            ]);
+            if (is_array($billingAddressPayload) && $billingAddressPayload !== []) {
+                $payload['billing_address'] = $billingAddressPayload;
+            }
+        }
+        if (in_array('billing_payment_method', $columns, true)) {
+            $billingPaymentMethod = $snapshotInput['billing_payment_method'] ?? null;
+            if (is_string($billingPaymentMethod) && trim($billingPaymentMethod) !== '') {
+                $payload['billing_payment_method'] = trim($billingPaymentMethod);
+            }
         }
 
         return $payload;
@@ -373,5 +483,91 @@ class OrderController extends ApiController
 
         return in_array($sqlState, ['23000', '23505'], true)
             || in_array($driverCode, ['1062', '19', '1555', '2067'], true);
+    }
+
+    /**
+     * Persist explicit customer profile inputs on the customer record.
+     * Shipping-only fields remain order-level snapshots for exceptional delivery cases.
+     *
+     * @param array<string, mixed> $validated
+     */
+    private function syncCustomerProfileFromCheckout(Customer $customer, array $validated): void
+    {
+        $checkout = is_array($validated['checkout'] ?? null) ? $validated['checkout'] : [];
+
+        $name = $this->firstFilledString([
+            $validated['name'] ?? null,
+            $checkout['name'] ?? null,
+        ]);
+        $email = $this->firstFilledString([
+            $validated['email'] ?? null,
+            $checkout['email'] ?? null,
+        ]);
+        $phone = $this->firstFilledString([
+            $validated['phone'] ?? null,
+            $checkout['phone'] ?? null,
+        ]);
+        $whatsapp = $this->firstFilledString([
+            $validated['whatsapp'] ?? null,
+            $checkout['whatsapp'] ?? null,
+        ]);
+        $city = $this->firstFilledString([
+            $validated['city'] ?? null,
+            $checkout['city'] ?? null,
+        ]);
+        // Intentionally ignore shippingAddress/shipping_address when syncing customer defaults.
+        $address = $this->firstFilledString([
+            $validated['address'] ?? null,
+            $checkout['address'] ?? null,
+        ]);
+
+        $updates = [];
+
+        if ($name !== null && $name !== (string) $customer->name) {
+            $updates['name'] = $name;
+        }
+        if ($email !== null) {
+            $email = strtolower($email);
+            $existingEmail = Customer::query()
+                ->where('id', '!=', $customer->id)
+                ->where('email', $email)
+                ->exists();
+
+            if (! $existingEmail && $email !== (string) $customer->email) {
+                $updates['email'] = $email;
+            }
+        }
+        if ($phone !== null) {
+            $existingPhone = Customer::query()
+                ->where('id', '!=', $customer->id)
+                ->where('phone', $phone)
+                ->exists();
+
+            if (! $existingPhone && $phone !== (string) ($customer->phone ?? '')) {
+                $updates['phone'] = $phone;
+            }
+        }
+        if ($whatsapp !== null && $whatsapp !== (string) ($customer->whatsapp ?? '')) {
+            $updates['whatsapp'] = $whatsapp;
+        }
+        if ($city !== null && $city !== (string) ($customer->city ?? '')) {
+            $updates['city'] = $city;
+        }
+        if ($address !== null && $address !== (string) ($customer->address ?? '')) {
+            $updates['address'] = $address;
+        }
+
+        if ($updates === []) {
+            return;
+        }
+
+        try {
+            $customer->forceFill($updates)->save();
+        } catch (Throwable $exception) {
+            Log::warning('api.orders.customer_profile_sync_failed', [
+                'customer_id' => $customer->id,
+                'message' => $exception->getMessage(),
+            ]);
+        }
     }
 }

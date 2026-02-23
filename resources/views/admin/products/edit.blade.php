@@ -1,32 +1,171 @@
 @extends('layouts.admin')
 
-@section('title', __('Edit product'))
+@section('title', __('Edit Product'))
 
 @section('content')
-    @include('admin.components.flash')
-
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-        <div>
-            <h4 class="mb-1">{{ __('Edit product') }}</h4>
-            <p class="text-muted mb-0">{{ __('Update the product details.') }}</p>
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="fw-bold py-3 mb-0">{{ __('Edit Product') }}</h4>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb breadcrumb-style1 mb-0">
+                        <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">{{ __('Dashboard') }}</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('admin.products.index') }}">{{ __('Products') }}</a>
+                        </li>
+                        <li class="breadcrumb-item active">{{ __('Edit') }}</li>
+                    </ol>
+                </nav>
+            </div>
         </div>
-        <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary">
-            {{ __('Back to products') }}
-        </a>
-    </div>
 
-    <div class="card">
-        <div class="card-body">
-            <form method="POST" action="{{ route('admin.products.update', $product) }}" enctype="multipart/form-data">
-                @csrf
-                @method('PUT')
+        <div class="card">
+            <div class="card-body">
+                <form method="POST"
+                    action="{{ route('admin.products.update', ['locale' => app()->getLocale(), 'product' => $product->id]) }}"
+                    class="row g-3" enctype="multipart/form-data">
+                    @csrf
+                    @method('PUT')
+                    <div class="col-md-6">
+                        <label class="form-label">{{ __('Name') }}</label>
+                        <input type="text" name="name" value="{{ old('name', $product->name) }}"
+                            class="form-control @error('name') is-invalid @enderror">
+                        @error('name')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ __('SKU') }}</label>
+                        <input type="text" name="sku" value="{{ old('sku', $product->sku) }}"
+                            class="form-control @error('sku') is-invalid @enderror">
+                        @error('sku')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ __('Price') }}</label>
+                        <input type="number" step="0.01" name="price" value="{{ old('price', $product->price) }}"
+                            class="form-control @error('price') is-invalid @enderror">
+                        @error('price')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ __('Stock Qty') }}</label>
+                        <input type="number" name="stock_qty" value="{{ old('stock_qty', $product->stock_qty) }}"
+                            class="form-control @error('stock_qty') is-invalid @enderror">
+                        @error('stock_qty')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ __('Category') }}</label>
+                        <select name="category_id" class="form-select @error('category_id') is-invalid @enderror">
+                            <option value="">{{ __('Select Category') }}</option>
+                            @foreach ($categories as $category)
+                                <option value="{{ $category->id }}" @selected(old('category_id', $product->category_id) == $category->id)>{{ $category->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('category_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ __('Brand') }}</label>
+                        <input type="text" name="brand" value="{{ old('brand', $product->brand) }}"
+                            class="form-control @error('brand') is-invalid @enderror">
+                        @error('brand')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ __('Made In') }}</label>
+                        <input type="text" name="made_in" value="{{ old('made_in', $product->made_in) }}"
+                            class="form-control @error('made_in') is-invalid @enderror">
+                        @error('made_in')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ __('Status') }}</label>
+                        <div class="form-check form-switch mt-2">
+                            <input type="hidden" name="is_active" value="0">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="is_active_edit"
+                                value="1" @checked(old('is_active', $product->is_active))>
+                            <label class="form-check-label" for="is_active_edit">{{ __('Active') }}</label>
+                        </div>
+                        @error('is_active')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ __('Description') }}</label>
+                        <textarea name="description" class="form-control @error('description') is-invalid @enderror" rows="4">{{ old('description', $product->description) }}</textarea>
+                        @error('description')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ __('Cover Image') }}</label>
+                        @if ($product->cover_image)
+                            <div class="mb-2">
+                                <img src="{{ asset('storage/' . $product->cover_image) }}" alt="cover"
+                                    style="max-height:100px;">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="remove_cover" value="1"
+                                        id="removeCover">
+                                    <label class="form-check-label" for="removeCover">{{ __('Remove cover') }}</label>
+                                </div>
+                            </div>
+                        @endif
+                        <input type="file" name="cover_image"
+                            class="form-control @error('cover_image') is-invalid @enderror">
+                        @error('cover_image')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ __('Additional Images') }}</label>
+                        <input type="file" name="images[]" multiple
+                            class="form-control @error('images') is-invalid @enderror">
+                        @if ($errors->has('images.*'))
+                            <div class="invalid-feedback d-block">
+                                {{ $errors->first('images.*') }}
+                            </div>
+                        @endif
 
-                @include('admin.products._form', [
-                    'product' => $product,
-                    'categories' => $categories,
-                    'submitLabel' => __('Update'),
-                ])
-            </form>
+
+                    </div>
+                    @if ($product->images->isNotEmpty())
+                        <div class="col-12">
+                            <label class="form-label">{{ __('Existing Images') }}</label>
+                            <div class="row">
+                                @foreach ($product->images as $img)
+                                    <div class="col-auto mb-2" style="position:relative;">
+                                        <img src="{{ asset('storage/' . $img->image_path) }}" style="max-height:80px;" />
+                                        <input type="hidden" name="images_orders[][id]" value="{{ $img->id }}">
+                                        <input type="number" name="images_orders[][sort_order]"
+                                            value="{{ old('images_orders.' . $loop->index . '.sort_order', $img->sort_order) }}"
+                                            class="form-control form-control-sm mt-1" style="width:60px;"
+                                            placeholder="#">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="deleted_image_ids[]"
+                                                value="{{ $img->id }}" id="del-img-{{ $img->id }}">
+                                            <label class="form-check-label"
+                                                for="del-img-{{ $img->id }}">{{ __('Delete') }}</label>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                    <div class="col-12 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">{{ __('Update') }}</button>
+                        <a href="{{ route('admin.products.index') }}"
+                            class="btn btn-outline-secondary">{{ __('Cancel') }}</a>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 @endsection

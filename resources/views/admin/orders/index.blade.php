@@ -3,6 +3,57 @@
 @section('title', __('Orders'))
 
 @section('content')
+    @php
+        $initialLatestOrderId = (int) ($orders->first()?->id ?? 0);
+        $initialOrdersSignature = hash(
+            'sha256',
+            $orders
+                ->getCollection()
+                ->map(fn($order) => implode(':', [
+                    (string) $order->id,
+                    (string) optional($order->updated_at)->timestamp,
+                    (string) $order->status,
+                    (string) $order->total,
+                ]))
+                ->implode('|')
+        );
+    @endphp
+    <style>
+        .order-row-fresh {
+            animation: order-row-fresh-pulse 2.2s ease;
+            background-color: rgba(13, 110, 253, .08);
+        }
+
+        @keyframes order-row-fresh-pulse {
+            0% {
+                background-color: rgba(13, 110, 253, .22);
+            }
+
+            100% {
+                background-color: rgba(13, 110, 253, .08);
+            }
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #28c76f;
+            display: inline-block;
+            box-shadow: 0 0 0 0 rgba(40, 199, 111, .65);
+            animation: live-dot-pulse 1.6s infinite;
+        }
+
+        @keyframes live-dot-pulse {
+            70% {
+                box-shadow: 0 0 0 9px rgba(40, 199, 111, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(40, 199, 111, 0);
+            }
+        }
+    </style>
     <div class="container-xxl flex-grow-1 container-p-y">
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
             <div>
@@ -61,6 +112,12 @@
                         {{ __('results') }}
                     </label>
                 </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-label-success">
+                        <span class="live-dot me-1"></span>{{ __('Refresh') }}
+                    </span>
+                    <span class="badge bg-label-primary d-none" data-live-new-count></span>
+                </div>
             </div>
             <div class="table-responsive text-nowrap">
                 <form id="orders-table-form" method="GET">
@@ -74,54 +131,18 @@
                                 <th>{{ __('Status') }}</th>
                                 <th>{{ __('Paid') }}</th>
                                 <th>{{ __('Due') }}</th>
+                                <th>{{ __('Discount') }}</th>
                                 <th>{{ __('Total') }}</th>
                                 <th>{{ __('Date') }}</th>
                                 <th>{{ __('Actions') }}</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            @forelse($orders as $order)
-                                @php
-                                    $normalizedStatus = $order->normalized_status;
-                                    $badge = match ($normalizedStatus) {
-                                        'approved' => 'bg-label-success',
-                                        'shipped' => 'bg-label-info',
-                                        'delivered' => 'bg-label-primary',
-                                        'returned' => 'bg-label-secondary',
-                                        'cancelled' => 'bg-label-danger',
-                                        default => 'bg-label-warning',
-                                    };
-                                @endphp
-                                <tr>
-                                    <td>
-                                        <a href="{{ route('admin.orders.show', $order) }}"
-                                            class="text-body fw-medium">{{ $order->order_no }}</a>
-                                    </td>
-                                    <td>
-                                        @if ($order->customer)
-                                            <a href="{{ route('admin.sales.customers.edit', $order->customer) }}"
-                                                class="text-body">{{ $order->customer->name }}</a>
-                                        @else
-                                            <span>-</span>
-                                        @endif
-                                    </td>
-                                    <td><span class="badge {{ $badge }}">{{ __(ucfirst($normalizedStatus)) }}</span></td>
-                                    <td>${{ number_format($order->paid_amount, 2) }}</td>
-                                    <td>${{ number_format($order->due_amount, 2) }}</td>
-                                    <td>${{ number_format($order->total, 2) }}</td>
-                                    <td>{{ $order->created_at?->format('Y-m-d') }}</td>
-                                    <td>
-                                        <a href="{{ route('admin.orders.show', $order) }}"
-                                            class="btn btn-sm btn-outline-secondary">
-                                            <i class="icon-base bx bx-show"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="8" class="text-center text-muted">{{ __('No orders found.') }}</td>
-                                </tr>
-                            @endforelse
+                        <tbody data-orders-table-body
+                            data-live-endpoint="{{ route('admin.orders.live', ['locale' => app()->getLocale()]) }}"
+                            data-latest-order-id="{{ $initialLatestOrderId }}"
+                            data-signature="{{ $initialOrdersSignature }}"
+                            data-current-per-page="{{ (int) $perPage }}">
+                            @include('admin.orders.partials.table-rows', ['orders' => $orders])
                         </tbody>
                     </table>
                 </form>
@@ -137,3 +158,135 @@
         </div>
     </div>
 @endsection
+
+@section('page-scripts')
+    <script>
+        (() => {
+            const tableBody = document.querySelector('[data-orders-table-body]');
+            if (!tableBody) {
+                return;
+            }
+
+            const liveEndpoint = tableBody.dataset.liveEndpoint || '';
+            if (liveEndpoint === '') {
+                return;
+            }
+
+            const newCountBadge = document.querySelector('[data-live-new-count]');
+            const knownOrderIds = new Set(
+                Array.from(tableBody.querySelectorAll('tr[data-order-id]'))
+                    .map((row) => Number.parseInt(row.getAttribute('data-order-id') || '0', 10))
+                    .filter((id) => Number.isInteger(id) && id > 0)
+            );
+            let latestOrderId = Number.parseInt(tableBody.dataset.latestOrderId || '0', 10) || 0;
+            let lastSignature = tableBody.dataset.signature || '';
+            const pollingIntervalMs = 7000;
+            const searchParams = new URLSearchParams(window.location.search);
+            const currentPage = Number.parseInt(searchParams.get('page') || '1', 10) || 1;
+
+            if (currentPage > 1) {
+                return;
+            }
+
+            const updateNewCountBadge = (count) => {
+                if (!newCountBadge) {
+                    return;
+                }
+
+                const safeCount = Math.max(0, Number.parseInt(String(count), 10) || 0);
+                if (safeCount === 0) {
+                    newCountBadge.classList.add('d-none');
+                    newCountBadge.textContent = '';
+                    return;
+                }
+
+                newCountBadge.classList.remove('d-none');
+                newCountBadge.textContent = `${safeCount} {{ __('New') }}`;
+            };
+
+            const parseRowIds = (root) => {
+                return Array.from(root.querySelectorAll('tr[data-order-id]'))
+                    .map((row) => Number.parseInt(row.getAttribute('data-order-id') || '0', 10))
+                    .filter((id) => Number.isInteger(id) && id > 0);
+            };
+
+            const markFreshRows = (rowIds) => {
+                rowIds.forEach((id) => {
+                    const row = tableBody.querySelector(`tr[data-order-id="${id}"]`);
+                    if (!row) {
+                        return;
+                    }
+
+                    row.classList.add('order-row-fresh');
+                    const newBadge = row.querySelector('[data-new-order-badge]');
+                    if (newBadge) {
+                        newBadge.classList.remove('d-none');
+                    }
+                });
+            };
+
+            const buildPollUrl = () => {
+                const url = new URL(liveEndpoint, window.location.origin);
+                const status = searchParams.get('status');
+                const q = searchParams.get('q');
+                const perPage = searchParams.get('per_page') || tableBody.dataset.currentPerPage || '10';
+
+                if (status) {
+                    url.searchParams.set('status', status);
+                }
+                if (q) {
+                    url.searchParams.set('q', q);
+                }
+                if (perPage) {
+                    url.searchParams.set('per_page', perPage);
+                }
+                url.searchParams.set('since_id', String(latestOrderId));
+
+                return url.toString();
+            };
+
+            const poll = async () => {
+                try {
+                    const response = await fetch(buildPollUrl(), {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+
+                    if (!response.ok) {
+                        return;
+                    }
+
+                    const payload = await response.json();
+                    if (!payload || typeof payload.rows_html !== 'string') {
+                        return;
+                    }
+
+                    if ((payload.signature || '') === lastSignature) {
+                        updateNewCountBadge(payload.new_orders_count || 0);
+                        return;
+                    }
+
+                    const probe = document.createElement('tbody');
+                    probe.innerHTML = payload.rows_html;
+                    const incomingIds = parseRowIds(probe);
+                    const freshIds = incomingIds.filter((id) => !knownOrderIds.has(id));
+
+                    tableBody.innerHTML = payload.rows_html;
+                    markFreshRows(freshIds);
+
+                    incomingIds.forEach((id) => knownOrderIds.add(id));
+                    latestOrderId = Math.max(latestOrderId, Number.parseInt(String(payload.latest_order_id || 0), 10) || 0);
+                    lastSignature = payload.signature || '';
+                    updateNewCountBadge(payload.new_orders_count || freshIds.length);
+                } catch (_error) {
+                    // Ignore transient polling errors and retry on next interval.
+                }
+            };
+
+            window.setInterval(poll, pollingIntervalMs);
+        })();
+    </script>
+@endsection
+

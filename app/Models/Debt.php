@@ -5,10 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ */
 class Debt extends Model
 {
     protected $fillable = [
-        'partner_id',
+        'customer_id',
         'amount',
         'due_date',
         'status',
@@ -19,8 +22,8 @@ class Debt extends Model
         'due_date' => 'date',
     ];
 
-    public function partner(): BelongsTo
+    public function customer(): BelongsTo
     {
-        return $this->belongsTo(Partner::class);
+        return $this->belongsTo(Customer::class);
     }
 }

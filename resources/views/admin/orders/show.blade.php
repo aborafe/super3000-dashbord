@@ -23,11 +23,17 @@
                         'product_id' => $item->product_id,
                         'qty' => $item->qty,
                         'price' => number_format((float) $item->price, 2, '.', ''),
+                        'base_price' => number_format((float) ($item->base_price ?? $item->price), 2, '.', ''),
                     ];
                 })
                 ->values()
                 ->all();
         }
+
+        $orderPaid = (float) $order->paid_amount;
+        $orderItemsDiscount = (float) $order->items_discount_total;
+        $hasOrderDiscount = $orderItemsDiscount > 0;
+        $orderDue = max(0, (float) $order->total - $orderPaid);
     @endphp
 
     <style>
@@ -94,7 +100,7 @@
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                     <span class="badge {{ $statusBadge }}">{{ __(ucfirst($normalizedStatus)) }}</span>
                     @if ($order->created_at)
-                        <span class="text-muted small">{{ $order->created_at->format('M d, Y, h:i A') }}</span>
+                        <span class="text-muted small">{{ $order->created_at->format('Y-m-d H:i') }}</span>
                     @endif
                 </div>
             </div>
@@ -138,21 +144,34 @@
                                             <th class="w-px-180">{{ __('Price') }}</th>
                                             <th class="w-px-140">{{ __('Qty') }}</th>
                                             <th class="w-px-150">{{ __('Total') }}</th>
+                                            <th class="w-px-160 {{ $hasOrderDiscount ? '' : 'd-none' }}"
+                                                data-discount-column-header>{{ __('Discount') }}</th>
                                             <th class="w-px-80 text-center">{{ __('Action') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody data-items-body>
                                         <tr data-empty-row class="{{ count($formItems) > 0 ? 'd-none' : '' }}">
-                                            <td colspan="6" class="text-center py-4 text-muted">
+                                            <td colspan="7" class="text-center py-4 text-muted">
                                                 {{ __('No invoice items yet. Add at least one item.') }}
                                             </td>
                                         </tr>
 
                                         @foreach ($formItems as $index => $itemRow)
                                             @php
+                                                $selectedProductId = (int) ($itemRow['product_id'] ?? 0);
+                                                $fallbackBasePrice = (float) optional(
+                                                    $products->firstWhere('id', $selectedProductId),
+                                                )->price;
                                                 $lineTotal = (float) ($itemRow['qty'] ?? 0) * (float) ($itemRow['price'] ?? 0);
+                                                $basePrice = (float) ($itemRow['base_price'] ?? ($fallbackBasePrice ?: $itemRow['price'] ?? 0));
+                                                $unitDiscount = max(0, $basePrice - (float) ($itemRow['price'] ?? 0));
+                                                $lineDiscount = max(0, $unitDiscount * (int) ($itemRow['qty'] ?? 0));
                                             @endphp
-                                            <tr class="invoice-item-row" data-item-row data-line-total="{{ $lineTotal }}">
+                                            <tr class="invoice-item-row" data-item-row
+                                                data-line-total="{{ number_format($lineTotal, 2, '.', '') }}"
+                                                data-base-price="{{ number_format($basePrice, 2, '.', '') }}"
+                                                data-product-id="{{ $selectedProductId }}"
+                                                data-discount-total="{{ number_format($lineDiscount, 2, '.', '') }}">
                                                 <td><span data-row-number>{{ $loop->iteration }}</span></td>
                                                 <td>
                                                     @if (!empty($itemRow['id']))
@@ -192,7 +211,15 @@
                                                         @disabled(!$canEditInvoiceItems)>
                                                 </td>
                                                 <td class="fw-semibold" data-line-total-cell>
-                                                    <span data-line-total>${{ number_format($lineTotal, 2) }}</span>
+                                                    <span data-line-total>{{ money($lineTotal, 2) }}</span>
+                                                </td>
+                                                <td class="{{ $hasOrderDiscount ? '' : 'd-none' }}" data-line-discount-cell>
+                                                    <span
+                                                        class="badge bg-label-danger {{ $lineDiscount > 0 ? '' : 'd-none' }}"
+                                                        data-line-discount-badge>
+                                                        {{ __('Discount') }}:
+                                                        <span data-line-discount>{{ money($lineDiscount, 2) }}</span>
+                                                    </span>
                                                 </td>
                                                 <td class="text-center">
                                                     <button type="button" class="btn btn-sm btn-icon btn-label-danger"
@@ -210,10 +237,14 @@
                             <div class="d-flex justify-content-end mt-4">
                                 <div class="text-end">
                                     <p class="mb-1">{{ __('Subtotal') }}:
-                                        <strong data-summary-subtotal>${{ number_format($order->subtotal, 2) }}</strong>
+                                        <strong data-summary-subtotal>{{ money($order->subtotal, 2) }}</strong>
+                                    </p>
+                                    <p class="mb-1 text-danger {{ $hasOrderDiscount ? '' : 'd-none' }}"
+                                        data-summary-discount-row>{{ __('Discount') }}:
+                                        <strong data-summary-discount>{{ money($orderItemsDiscount, 2) }}</strong>
                                     </p>
                                     <h5 class="mb-3">{{ __('Total') }}:
-                                        <strong data-summary-total>${{ number_format($order->total, 2) }}</strong>
+                                        <strong data-summary-total>{{ money($order->total, 2) }}</strong>
                                     </h5>
                                     <button type="submit" class="btn btn-primary" @disabled(!$canEditInvoiceItems)>
                                         <i class="bx bx-save me-1"></i>{{ __('Save Invoice Items') }}
@@ -263,7 +294,7 @@
                                             <h6 class="mb-0">{{ $event['title'] }}</h6>
                                             <small class="text-muted">{{ $event['subtitle'] }}</small>
                                         </div>
-                                        <small class="text-muted">{{ $event['time']?->format('M d, H:i') }}</small>
+                                        <small class="text-muted">{{ $event['time']?->format('Y-m-d H:i') }}</small>
                                     </div>
                                 </li>
                             @endforeach
@@ -273,6 +304,105 @@
             </div>
 
             <div class="col-xl-4">
+                <div class="card invoice-card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bx bx-wallet me-1 text-primary"></i>{{ __('Partial Payment') }}</h5>
+                        <span class="badge {{ $orderDue > 0 ? 'bg-label-danger' : 'bg-label-success' }}">
+                            {{ $orderDue > 0 ? __('Due') : __('Paid') }}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>{{ __('Invoice Total') }}</span>
+                            <span class="fw-semibold">{{ money((float) $order->total, 2) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2 {{ $hasOrderDiscount ? '' : 'd-none' }}"
+                            data-payment-discount-row>
+                            <span>{{ __('Discount') }}</span>
+                            <span class="fw-semibold text-danger"
+                                data-payment-discount-value>{{ money($orderItemsDiscount, 2) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>{{ __('Paid') }}</span>
+                            <span class="fw-semibold text-success">{{ money($orderPaid, 2) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3">
+                            <span>{{ __('Due') }}</span>
+                            <span class="fw-semibold {{ $orderDue > 0 ? 'text-danger' : 'text-success' }}">
+                                {{ money($orderDue, 2) }}
+                            </span>
+                        </div>
+
+                        <form method="POST" action="{{ route('admin.orders.payments.store', ['locale' => app()->getLocale(), 'order' => $order]) }}" class="row g-2">
+                            @csrf
+                            <div class="col-12">
+                                <label class="form-label">{{ __('Amount') }}</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" min="0.01" name="amount" value="{{ old('amount') }}"
+                                        class="form-control @error('amount') is-invalid @enderror" required>
+                                </div>
+                                @error('amount')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ __('Method') }}</label>
+                                <select name="method" class="form-select @error('method') is-invalid @enderror" required>
+                                    <option value="cash" @selected(old('method', 'cash') === 'cash')>{{ __('Cash') }}</option>
+                                    <option value="card" @selected(old('method') === 'card')>{{ __('Card') }}</option>
+                                    <option value="transfer" @selected(old('method') === 'transfer')>{{ __('Transfer') }}</option>
+                                </select>
+                                @error('method')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ __('Paid At') }}</label>
+                                <input type="date" name="paid_at" value="{{ old('paid_at', now()->toDateString()) }}"
+                                    class="form-control @error('paid_at') is-invalid @enderror">
+                                @error('paid_at')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">{{ __('Notes') }}</label>
+                                <textarea name="notes" rows="2" class="form-control @error('notes') is-invalid @enderror">{{ old('notes') }}</textarea>
+                                @error('notes')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bx bx-credit-card me-1"></i>{{ __('Save Payment') }}
+                                </button>
+                            </div>
+                        </form>
+
+                        @php $allocationHistory = $order->paymentAllocations->sortByDesc(fn ($allocation) => $allocation->allocated_at ?? $allocation->created_at); @endphp
+                        @if ($allocationHistory->count() > 0)
+                            <hr>
+                            <h6 class="mb-2">{{ __('Payments History') }}</h6>
+                            <ul class="list-unstyled mb-0">
+                                @foreach ($allocationHistory as $allocation)
+                                    @php $payment = $allocation->payment; @endphp
+                                    <li class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            <div class="fw-medium">
+                                                {{ __(ucfirst((string) ($payment?->method ?? 'cash'))) }}
+                                                -
+                                                {{ money((float) $allocation->amount, 2) }}
+                                            </div>
+                                            <small class="text-muted">{{ optional($allocation->allocated_at ?? $allocation->created_at)->format('Y-m-d') }}</small>
+                                        </div>
+                                        <span class="badge bg-label-secondary">{{ __(ucfirst(str_replace('_', ' ', (string) ($payment?->source ?? 'migration')))) }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                </div>
+
                 <form method="POST"
                     action="{{ route('admin.orders.details', ['locale' => app()->getLocale(), 'order' => $order]) }}"
                     class="d-flex flex-column gap-4"
@@ -310,6 +440,11 @@
                                 <label class="form-label">{{ __('Mobile') }}</label>
                                 <input type="text" name="customer_phone" class="form-control"
                                     value="{{ old('customer_phone', $customerDetails['phone']) }}">
+                            </div>
+                            <div class="mt-3">
+                                <label class="form-label">{{ __('City') }}</label>
+                                <input type="text" name="customer_city" class="form-control"
+                                    value="{{ old('customer_city', $customerDetails['city']) }}">
                             </div>
                             <div class="mt-3">
                                 <label class="form-label">{{ __('WhatsApp') }}</label>
@@ -375,7 +510,8 @@
     </div>
 
     <template id="invoice-item-template">
-        <tr class="invoice-item-row row-enter" data-item-row data-line-total="0" data-new-row="1">
+        <tr class="invoice-item-row row-enter" data-item-row data-line-total="0" data-base-price="0" data-product-id=""
+            data-discount-total="0" data-new-row="1">
             <td><span data-row-number>1</span></td>
             <td>
                 <select class="form-select form-select-sm" required name="items[0][product_id]" data-product-select>
@@ -402,7 +538,13 @@
                     name="items[0][qty]" value="1" data-qty-input>
             </td>
             <td class="fw-semibold" data-line-total-cell>
-                <span data-line-total>$0.00</span>
+                <span data-line-total>{{ money(0, 2) }}</span>
+            </td>
+            <td class="d-none" data-line-discount-cell>
+                <span class="badge bg-label-danger d-none" data-line-discount-badge>
+                    {{ __('Discount') }}:
+                    <span data-line-discount>{{ money(0, 2) }}</span>
+                </span>
             </td>
             <td class="text-center">
                 <button type="button" class="btn btn-sm btn-icon btn-label-danger" data-remove-item
@@ -425,12 +567,17 @@
             const itemTemplate = document.getElementById('invoice-item-template');
             const addButton = document.querySelector('[data-add-item]');
             const emptyRow = itemsBody.querySelector('[data-empty-row]');
+            const discountColumnHeader = document.querySelector('[data-discount-column-header]');
             const summarySubtotalNode = document.querySelector('[data-summary-subtotal]');
+            const summaryDiscountRow = document.querySelector('[data-summary-discount-row]');
+            const summaryDiscountNode = document.querySelector('[data-summary-discount]');
             const summaryTotalNode = document.querySelector('[data-summary-total]');
+            const paymentDiscountRow = document.querySelector('[data-payment-discount-row]');
+            const paymentDiscountValueNode = document.querySelector('[data-payment-discount-value]');
             const locale = document.documentElement.lang === 'ar' ? 'ar-EG' : 'en-US';
             const moneyFormatter = new Intl.NumberFormat(locale, {
                 style: 'currency',
-                currency: 'USD',
+                currency: '{{ currency_code() }}',
                 maximumFractionDigits: 2,
             });
 
@@ -440,6 +587,24 @@
             };
 
             const formatMoney = (value) => moneyFormatter.format(Number.isFinite(value) ? value : 0);
+
+            const toggleDiscountVisibility = (hasDiscount) => {
+                if (discountColumnHeader) {
+                    discountColumnHeader.classList.toggle('d-none', !hasDiscount);
+                }
+
+                itemsBody.querySelectorAll('[data-line-discount-cell]').forEach((cell) => {
+                    cell.classList.toggle('d-none', !hasDiscount);
+                });
+
+                if (summaryDiscountRow) {
+                    summaryDiscountRow.classList.toggle('d-none', !hasDiscount);
+                }
+
+                if (paymentDiscountRow) {
+                    paymentDiscountRow.classList.toggle('d-none', !hasDiscount);
+                }
+            };
 
             const markDirty = (row) => {
                 row.classList.add('is-dirty');
@@ -453,6 +618,8 @@
                 const qtyInput = row.querySelector('[data-qty-input]');
                 const priceInput = row.querySelector('[data-price-input]');
                 const lineTotalNode = row.querySelector('[data-line-total]');
+                const lineDiscountNode = row.querySelector('[data-line-discount]');
+                const lineDiscountBadge = row.querySelector('[data-line-discount-badge]');
 
                 if (!qtyInput || !priceInput || !lineTotalNode) {
                     return;
@@ -460,27 +627,49 @@
 
                 const qty = Math.max(0, Math.floor(parseNumber(qtyInput.value)));
                 const price = Math.max(0, parseNumber(priceInput.value));
+                const basePrice = Math.max(0, parseNumber(row.dataset.basePrice));
                 const lineTotal = qty * price;
+                const discountPerUnit = Math.max(0, basePrice - price);
+                const discountTotal = discountPerUnit * qty;
 
                 row.dataset.lineTotal = lineTotal.toFixed(2);
+                row.dataset.discountTotal = discountTotal.toFixed(2);
                 lineTotalNode.textContent = formatMoney(lineTotal);
+
+                if (lineDiscountNode) {
+                    lineDiscountNode.textContent = formatMoney(discountTotal);
+                }
+
+                if (lineDiscountBadge) {
+                    lineDiscountBadge.classList.toggle('d-none', discountTotal <= 0);
+                }
             };
 
             const recalcTotals = () => {
                 const rows = itemsBody.querySelectorAll('[data-item-row]');
                 let subtotal = 0;
+                let totalDiscount = 0;
 
                 rows.forEach((row) => {
                     recalcRow(row);
                     subtotal += parseNumber(row.dataset.lineTotal);
+                    totalDiscount += parseNumber(row.dataset.discountTotal);
                 });
 
                 if (summarySubtotalNode) {
                     summarySubtotalNode.textContent = formatMoney(subtotal);
                 }
+                if (summaryDiscountNode) {
+                    summaryDiscountNode.textContent = formatMoney(totalDiscount);
+                }
+                if (paymentDiscountValueNode) {
+                    paymentDiscountValueNode.textContent = formatMoney(totalDiscount);
+                }
                 if (summaryTotalNode) {
                     summaryTotalNode.textContent = formatMoney(subtotal);
                 }
+
+                toggleDiscountVisibility(totalDiscount > 0.0001);
             };
 
             const updateEmptyState = () => {
@@ -520,11 +709,19 @@
                 productSelect.addEventListener('change', () => {
                     const selectedOption = productSelect.options[productSelect.selectedIndex];
                     const suggestedPrice = selectedOption ? selectedOption.dataset.defaultPrice : null;
+                    const previousProductId = row.dataset.productId ?? '';
+                    const selectedProductId = productSelect.value ?? '';
+                    const productChanged = selectedProductId !== previousProductId;
 
-                    if (suggestedPrice && (!priceInput.value || row.dataset.newRow === '1')) {
+                    if (productChanged) {
+                        row.dataset.basePrice = suggestedPrice ? String(parseNumber(suggestedPrice)) : String(parseNumber(priceInput.value));
+                    }
+
+                    if (suggestedPrice && (!priceInput.value || row.dataset.newRow === '1' || productChanged)) {
                         priceInput.value = suggestedPrice;
                     }
 
+                    row.dataset.productId = selectedProductId;
                     row.dataset.newRow = '0';
                     markDirty(row);
                     recalcTotals();
@@ -692,3 +889,5 @@
         })();
     </script>
 @endsection
+
+

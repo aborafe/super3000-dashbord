@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $name
  * @property string $slug
  * @property bool $is_active
+ * @property string|null $cover_image
  */
 class Category extends Model
 {

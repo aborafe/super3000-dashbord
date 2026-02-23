@@ -6,7 +6,9 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\User;
 use App\Notifications\AdminMessageNotification;
+use App\Notifications\OrderPaymentRecorded;
 use App\Notifications\OrderStatusChanged;
+use App\Services\CustomerLedgerService;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -145,5 +147,59 @@ class NotificationApiTest extends TestCase
                 return $channels === ['broadcast', 'database'];
             }
         );
+    }
+
+    public function test_order_payment_notification_is_broadcast_for_customer_realtime(): void
+    {
+        Notification::fake();
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $customer = Customer::factory()->create();
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => Order::STATUS_PENDING,
+            'total' => 100,
+            'subtotal' => 100,
+        ]);
+
+        app(CustomerLedgerService::class)->postOrderPayment($order, 40, 'cash');
+
+        Notification::assertSentTo(
+            $customer,
+            OrderPaymentRecorded::class,
+            function (OrderPaymentRecorded $notification, array $channels) use ($order): bool {
+                sort($channels);
+
+                return $channels === ['broadcast', 'database']
+                    && (int) $notification->order->id === (int) $order->id
+                    && (float) $notification->appliedAmount === 40.0;
+            }
+        );
+    }
+
+    public function test_notifications_index_includes_order_payment_event_payload(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $customer = Customer::factory()->create();
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => Order::STATUS_PENDING,
+            'total' => 100,
+            'subtotal' => 100,
+        ]);
+
+        app(CustomerLedgerService::class)->postOrderPayment($order, 40, 'cash');
+
+        $response = $this->actingAsCustomerApi($customer)->getJson('/api/v2/notifications');
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('status', true);
+        $response->assertJsonPath('data.0.type', 'order_payment_recorded');
+        $response->assertJsonPath('data.0.data.order_id', (int) $order->id);
+        $response->assertJsonPath('data.0.data.order_no', $order->order_no);
+        $response->assertJsonPath('data.0.data.payment_amount', 40);
+        $response->assertJsonPath('data.0.data.due_after', 60);
+        $response->assertJsonPath('data.0.data.is_partial', true);
     }
 }

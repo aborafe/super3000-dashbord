@@ -26,6 +26,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 });
 
 Route::prefix('v2')->name('api.v2.')->group(function () {
+    Route::post('auth/register', [CustomerAuthController::class, 'register'])
+        ->middleware('throttle:api-login')
+        ->name('auth.register');
+
     Route::post('auth/login', [CustomerAuthController::class, 'login'])
         ->middleware('throttle:api-login')
         ->name('auth.login');
@@ -36,6 +40,9 @@ Route::prefix('v2')->name('api.v2.')->group(function () {
             ->name('auth.logout');
         Route::get('me', [CustomerAuthController::class, 'me'])
             ->name('auth.me');
+        Route::patch('me', [CustomerAuthController::class, 'updateProfile'])
+            ->middleware('throttle:api-sensitive')
+            ->name('auth.me.update');
 
         Route::get('categories', [CategoryController::class, 'index'])
             ->name('categories.index');
