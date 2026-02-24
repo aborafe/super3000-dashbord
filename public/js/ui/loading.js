@@ -5,6 +5,7 @@ const LOADER_OVERLAY_ID = 'global-loading-overlay';
 const MIN_VISIBLE_MS = 260;
 const DEFAULT_PROGRESS_START = 12;
 const MAX_AUTO_PROGRESS = 92;
+const DOWNLOAD_FORMATS = new Set(['csv', 'excel', 'xls', 'xlsx', 'pdf']);
 
 let activeCount = 0;
 let barElement = null;
@@ -14,6 +15,29 @@ let progressValue = 0;
 let autoTimer = null;
 let overlayTimer = null;
 let shownAt = 0;
+
+const isDownloadLikeUrl = (url) => {
+  if (!url || typeof url.pathname !== 'string') {
+    return false;
+  }
+
+  const pathname = url.pathname.toLowerCase();
+  if (pathname.includes('/export/') || pathname.includes('/download/')) {
+    return true;
+  }
+
+  const queryFormat = (url.searchParams.get('format') || '').toLowerCase();
+  if (DOWNLOAD_FORMATS.has(queryFormat)) {
+    return true;
+  }
+
+  const extensionMatch = pathname.match(/\.([a-z0-9]+)$/);
+  if (extensionMatch && DOWNLOAD_FORMATS.has(extensionMatch[1])) {
+    return true;
+  }
+
+  return false;
+};
 
 const shouldIgnoreLink = (link) => {
   if (!link || !link.getAttribute) {
@@ -40,6 +64,10 @@ const shouldIgnoreLink = (link) => {
   try {
     const url = new URL(link.href, window.location.href);
     if (url.origin !== window.location.origin) {
+      return true;
+    }
+
+    if (isDownloadLikeUrl(url)) {
       return true;
     }
 

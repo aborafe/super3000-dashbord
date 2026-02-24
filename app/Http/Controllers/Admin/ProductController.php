@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Exceptions\StockConflictException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreProductRequest;
@@ -107,11 +108,10 @@ class ProductController extends Controller
                 ->header('Content-Disposition', 'attachment; filename="'.$baseName.'.xls"');
         }
 
-        return response()->view('admin.products.exports.pdf', [
+        return Pdf::loadView('admin.products.exports.pdf', [
             'products' => $products,
             'exportedAt' => $exportedAt,
-            'autoPrint' => true,
-        ]);
+        ])->download("{$baseName}.pdf");
     }
 
     public function create(): View

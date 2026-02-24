@@ -148,15 +148,15 @@
                                 <i class="icon-base bx bx-export me-1"></i>{{ __('Export') }}
                             </button>
                             <div class="dropdown-menu">
-                                <a class="dropdown-item"
+                                <a class="dropdown-item" data-no-loader="1"
                                     href="{{ route('admin.products.export', array_merge(['locale' => app()->getLocale(), 'format' => 'csv'], request()->query())) }}">
                                     {{ __('CSV') }}
                                 </a>
-                                <a class="dropdown-item"
+                                <a class="dropdown-item" data-no-loader="1"
                                     href="{{ route('admin.products.export', array_merge(['locale' => app()->getLocale(), 'format' => 'excel'], request()->query())) }}">
                                     {{ __('Excel') }}
                                 </a>
-                                <a class="dropdown-item" target="_blank"
+                                <a class="dropdown-item" target="_blank" data-no-loader="1"
                                     href="{{ route('admin.products.export', array_merge(['locale' => app()->getLocale(), 'format' => 'pdf'], request()->query())) }}">
                                     {{ __('PDF') }}
                                 </a>

@@ -10,17 +10,9 @@
         table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #d9d9d9; padding: 7px; font-size: 12px; text-align: start; }
         th { background: #f3f5ff; }
-        @media print {
-            .no-print { display: none; }
-            body { margin: 10mm; }
-        }
     </style>
 </head>
 <body>
-    <div class="no-print" style="margin-bottom: 10px;">
-        <button onclick="window.print()">{{ __('Print') }}</button>
-    </div>
-
     <h2>{{ __('Products') }}</h2>
     <div class="meta">{{ __('Date') }}: {{ $exportedAt->format('Y-m-d H:i') }}</div>
 
@@ -52,14 +44,5 @@
             @endforelse
         </tbody>
     </table>
-
-    @if (!empty($autoPrint))
-        <script>
-            window.addEventListener('load', function() {
-                window.print();
-            });
-        </script>
-    @endif
 </body>
 </html>
-

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Database\Eloquent\Builder;
@@ -85,11 +86,10 @@ class InvoiceController extends Controller
                 ->header('Content-Disposition', 'attachment; filename="'.$baseName.'.xls"');
         }
 
-        return response()->view('admin.invoices.exports.pdf', [
+        return Pdf::loadView('admin.invoices.exports.pdf', [
             'invoices' => $invoices,
             'exportedAt' => $exportedAt,
-            'autoPrint' => true,
-        ]);
+        ])->download("{$baseName}.pdf");
     }
 
     public function print(Order $order): View
