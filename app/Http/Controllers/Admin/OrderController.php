@@ -662,7 +662,7 @@ class OrderController extends Controller
             [
                 'value' => number_format(Order::query()->where('status', Order::STATUS_SHIPPED)->count()),
                 'label' => __('Shipped'),
-                'icon' => 'bx-truck',
+                'icon' => 'bx-package',
             ],
         ];
     }

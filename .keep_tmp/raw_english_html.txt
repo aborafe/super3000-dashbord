@@ -1,0 +1,176 @@
+resources/views\layouts\admin.blade.php:578:                                                    <h6 class="mb-0">{{ $authUser?->name }}</h6>
+resources/views\layouts\admin.blade.php:580:                                                        class="text-body-secondary">{{ $authUser?->email }}</small>
+resources/views\layouts\admin.blade.php:686:                                    <a href="" class="footer-link">mohamed aborafe</a>
+resources/views\admin\invoices\print.blade.php:119:                    <h4 class="fw-bold mb-1">{{ __('Invoice') }} #{{ $order->order_no }}</h4>
+resources/views\admin\invoices\print.blade.php:120:                    <p class="mb-1 text-muted">{{ __('Date') }}: {{ $order->created_at?->format('Y-m-d') }}</p>
+resources/views\admin\invoices\print.blade.php:121:                    <p class="mb-0 text-muted">{{ __('Status') }}: {{ __(ucfirst($order->status)) }}</p>
+resources/views\admin\invoices\print.blade.php:160:                                        <td>{{ $item->product?->name ?? __('Unknown product') }}</td>
+resources/views\admin\invoices\print.blade.php:161:                                        <td>{{ money((float) $item->price, 2) }}</td>
+resources/views\admin\invoices\print.blade.php:162:                                        <td>{{ $item->qty }}</td>
+resources/views\admin\invoices\print.blade.php:163:                                        <td>{{ money((float) $item->line_total, 2) }}</td>
+resources/views\admin\invoices\print.blade.php:182:                            <p class="mb-1">{{ __('Subtotal') }}: <strong>{{ money((float) $order->subtotal, 2) }}</strong>
+resources/views\admin\invoices\print.blade.php:189:                            <h5 class="mb-1">{{ __('Total') }}: <strong>{{ money((float) $order->total, 2) }}</strong>
+resources/views\admin\invoices\index.blade.php:75:                <a class="dropdown-item" href="javascript:void(0);">CSV</a>
+resources/views\admin\invoices\index.blade.php:76:                <a class="dropdown-item" href="javascript:void(0);">Excel</a>
+resources/views\admin\invoices\index.blade.php:77:                <a class="dropdown-item" href="javascript:void(0);">PDF</a>
+resources/views\admin\invoices\index.blade.php:111:                    <a href="{{ route('admin.orders.show', $order) }}" class="text-body fw-medium">{{ $order->order_no }}</a>
+resources/views\admin\invoices\index.blade.php:115:                      <a href="{{ route('admin.sales.customers.edit', $order->customer) }}" class="text-body">{{ $order->customer->name }}</a>
+resources/views\admin\invoices\index.blade.php:120:                  <td>{{ money($order->total, 2) }}</td>
+resources/views\admin\invoices\index.blade.php:125:                  <td>{{ $order->created_at?->format('Y-m-d') }}</td>
+resources/views\admin\dashboard.blade.php:290:                      <span class="badge bg-label-warning">{{ now()->year }}</span>
+resources/views\admin\dashboard.blade.php:571:                      <small class="d-block">{{ __(ucfirst((string) $payment->method)) }}</small>
+resources/views\admin\dashboard.blade.php:581:                      <h6 class="fw-normal mb-0">{{ money($payment->amount, 2) }}</h6>
+resources/views\admin\dashboard.blade.php:643:                    <td>{{ $item->product?->category?->name ?? __('Category') }}</td>
+resources/views\admin\dashboard.blade.php:644:                    <td>{{ __(ucfirst((string) ($item->latestPayment?->method ?? 'card'))) }}</td>
+resources/views\admin\operations\warehouses\index.blade.php:42:                    <a href="{{ route('admin.operations.warehouses.edit', $warehouse) }}" class="text-body fw-medium">{{ $warehouse->name }}</a>
+resources/views\admin\operations\warehouses\index.blade.php:45:                    <a href="{{ route('admin.operations.warehouses.edit', $warehouse) }}" class="text-body">{{ $warehouse->location ?? '-' }}</a>
+resources/views\admin\catalog\products\index.blade.php:76:                                    <td>{{ $product->name }}</td>
+resources/views\admin\catalog\products\index.blade.php:77:                                    <td>{{ $product->sku }}</td>
+resources/views\admin\catalog\products\index.blade.php:78:                                    <td>{{ $product->category?->name }}</td>
+resources/views\admin\catalog\products\index.blade.php:79:                                    <td>{{ money($product->price, 2) }}</td>
+resources/views\admin\catalog\products\index.blade.php:80:                                    <td>{{ $product->stock_qty }}</td>
+resources/views\admin\users\show.blade.php:46:                                <h5 class="mb-1">{{ $user->name }}</h5>
+resources/views\admin\users\show.blade.php:50:                                        <h5 class="mb-0">{{ number_format($activityLogs->count()) }}</h5>
+resources/views\admin\users\show.blade.php:72:                                    <li class="mb-2"><span class="fw-medium">{{ __('Username') }}:</span> {{ $user->name }}</li>
+resources/views\admin\users\show.blade.php:73:                                    <li class="mb-2"><span class="fw-medium">{{ __('Email') }}:</span> {{ $user->email }}</li>
+resources/views\admin\users\show.blade.php:86:                                        <span class="badge bg-label-primary">{{ __(ucfirst($role->name)) }}</span>
+resources/views\admin\users\show.blade.php:122:                                <span class="badge bg-label-primary">{{ $activityLogs->count() }}</span>
+resources/views\admin\users\show.blade.php:137:                                                <td><span class="badge bg-label-primary">{{ ucfirst((string) $log->action) }}</span></td>
+resources/views\admin\users\show.blade.php:138:                                                <td>{{ ucfirst((string) $log->entity_type) }} #{{ $log->entity_id ?? '-' }}</td>
+resources/views\admin\users\show.blade.php:139:                                                <td>{{ (string) ($log->meta['name'] ?? __('System update')) }}</td>
+resources/views\admin\users\show.blade.php:140:                                                <td>{{ $log->created_at?->diffForHumans() }}</td>
+resources/views\admin\users\show.blade.php:196:                                <span class="badge bg-label-secondary">{{ $recentNotifications->count() }}</span>
+resources/views\admin\users\show.blade.php:212:                                                <td>{{ (string) ($payload['title'] ?? class_basename($notification->type)) }}</td>
+resources/views\admin\users\show.blade.php:219:                                                <td>{{ $notification->created_at?->format('Y-m-d H:i') }}</td>
+resources/views\admin\users\show.blade.php:242:                                <h5 class="mb-1">{{ $user->name }}</h5>
+resources/views\admin\users\show.blade.php:302:                                                    <h6 class="mb-0">{{ ucfirst((string) $log->action) }} {{ (string) $log->entity_type }}</h6>
+resources/views\admin\users\show.blade.php:303:                                                    <small class="text-muted">{{ (string) ($log->meta['name'] ?? __('System update')) }}</small>
+resources/views\admin\users\show.blade.php:305:                                                <small class="text-muted">{{ $log->created_at?->diffForHumans() }}</small>
+resources/views\admin\security\users\index.blade.php:43:                    <a href="{{ route('admin.security.users.edit', $user) }}" class="text-body fw-medium">{{ $user->name }}</a>
+resources/views\admin\security\users\index.blade.php:46:                    <a href="{{ route('admin.security.users.edit', $user) }}" class="text-body">{{ $user->email }}</a>
+resources/views\admin\security\users\index.blade.php:48:                  <td>{{ $user->roles->first()?->name ?? '-' }}</td>
+resources/views\admin\security\users\index.blade.php:49:                  <td>{{ $user->created_at?->format('Y-m-d') }}</td>
+resources/views\admin\security\roles\index.blade.php:89:                      <span>{{ __(ucfirst($role->name)) }}</span>
+resources/views\admin\security\roles\index.blade.php:96:                    <a href="{{ route('admin.security.roles.edit', $role) }}" class="text-body">{{ $role->permissions_count }}</a>
+resources/views\admin\security\roles\index.blade.php:98:                  <td>{{ (int) $role->users_count }}</td>
+resources/views\admin\products\index.blade.php:151:                                <a class="dropdown-item" href="javascript:void(0);">CSV</a>
+resources/views\admin\products\index.blade.php:152:                                <a class="dropdown-item" href="javascript:void(0);">Excel</a>
+resources/views\admin\products\index.blade.php:153:                                <a class="dropdown-item" href="javascript:void(0);">PDF</a>
+resources/views\admin\products\index.blade.php:184:                                    ? ($product->stock_qty <= 10
+resources/views\admin\products\index.blade.php:208:                                                class="fw-medium text-body">{{ $product->name }}</a>
+resources/views\admin\products\index.blade.php:211:                                                    class="small text-muted">{{ $product->category->name }}</a>
+resources/views\admin\products\index.blade.php:225:                                                class="text-body">{{ $product->category->name }}</a>
+resources/views\admin\products\index.blade.php:240:                                        class="text-body">{{ $product->sku }}</a>
+resources/views\admin\products\index.blade.php:242:                                <td>{{ money($product->price, 2) }}</td>
+resources/views\admin\products\index.blade.php:243:                                <td>{{ $product->stock_qty }}</td>
+resources/views\admin\security\roles\edit.blade.php:9:        <h4 class="fw-bold py-3 mb-0">{{ __('Edit Role') }}: {{ __(ucfirst($role->name)) }}</h4>
+resources/views\admin\security\roles\edit.blade.php:14:            <li class="breadcrumb-item active">{{ __(ucfirst($role->name)) }}</li>
+resources/views\admin\catalog\inventory\index.blade.php:45:                      <a href="{{ route('admin.products.edit', $movement->product) }}" class="text-body fw-medium">{{ $movement->product->name }}</a>
+resources/views\admin\catalog\inventory\index.blade.php:52:                      <a href="{{ route('admin.operations.warehouses.edit', $movement->warehouse) }}" class="text-body">{{ $movement->warehouse->name }}</a>
+resources/views\admin\catalog\inventory\index.blade.php:62:                  <td>{{ $movement->qty }}</td>
+resources/views\admin\catalog\inventory\index.blade.php:63:                  <td>{{ $movement->note ?? '-' }}</td>
+resources/views\admin\catalog\inventory\index.blade.php:64:                  <td>{{ $movement->created_at?->format('Y-m-d') }}</td>
+resources/views\admin\catalog\inventory\create.blade.php:29:                <option value="{{ $product->id }}" @selected(old('product_id') == $product->id)>{{ $product->name }}</option>
+resources/views\admin\catalog\inventory\create.blade.php:39:                <option value="{{ $warehouse->id }}" @selected(old('warehouse_id') == $warehouse->id)>{{ $warehouse->name }}</option>
+resources/views\admin\security\activity-logs\index.blade.php:38:                  <td>{{ $log->action }}</td>
+resources/views\admin\security\activity-logs\index.blade.php:39:                  <td>{{ $log->entity_type }}</td>
+resources/views\admin\security\activity-logs\index.blade.php:40:                  <td>{{ $log->entity_id }}</td>
+resources/views\admin\security\activity-logs\index.blade.php:43:                      <a href="{{ route('admin.users.show', $log->user) }}" class="text-body">{{ $log->user->name }}</a>
+resources/views\admin\security\activity-logs\index.blade.php:48:                  <td>{{ $log->meta ? json_encode($log->meta) : '-' }}</td>
+resources/views\admin\security\activity-logs\index.blade.php:49:                  <td>{{ $log->created_at?->format('Y-m-d H:i') }}</td>
+resources/views\admin\users\index.blade.php:45:                      <a href="{{ route('admin.users.show', $user) }}" class="text-body fw-medium">{{ $user->name }}</a>
+resources/views\admin\users\index.blade.php:49:                    <a href="{{ route('admin.users.show', $user) }}" class="text-body">{{ $user->email }}</a>
+resources/views\admin\users\index.blade.php:53:                      <span class="badge bg-label-primary me-1">{{ __(ucfirst($role->name)) }}</span>
+resources/views\admin\users\index.blade.php:58:                  <td>{{ $user->created_at?->format('Y-m-d') }}</td>
+resources/views\admin\catalog\categories\index.blade.php:57:                                            class="text-body fw-medium">{{ $category->name }}</a>
+resources/views\admin\catalog\categories\index.blade.php:61:                                            class="text-body">{{ $category->slug }}</a>
+resources/views\admin\sales\payments\index.blade.php:43:                      <a href="{{ route('admin.orders.show', ['locale' => app()->getLocale(), 'order' => $payment->order]) }}" class="text-body fw-medium">{{ $payment->order->order_no }}</a>
+resources/views\admin\sales\payments\index.blade.php:51:                      <a href="{{ route('admin.sales.customers.edit', ['locale' => app()->getLocale(), 'customer' => $paymentCustomer]) }}" class="text-body">{{ $paymentCustomer->name }}</a>
+resources/views\admin\sales\payments\index.blade.php:56:                  <td>{{ __(ucfirst(str_replace('_', ' ', (string) $payment->source))) }}</td>
+resources/views\admin\sales\payments\index.blade.php:57:                  <td>{{ __(ucfirst($payment->method)) }}</td>
+resources/views\admin\sales\payments\index.blade.php:58:                  <td>{{ money($payment->amount, 2) }}</td>
+resources/views\admin\sales\payments\index.blade.php:59:                  <td>{{ money((float) ($payment->allocated_amount ?? 0), 2) }}</td>
+resources/views\admin\sales\payments\index.blade.php:71:                    <span class="badge {{ $badge }}">{{ __(ucfirst($payment->status)) }}</span>
+resources/views\admin\sales\payments\index.blade.php:73:                  <td>{{ $payment->paid_at?->format('Y-m-d') ?? '-' }}</td>
+resources/views\admin\sales\orders\show.blade.php:10:                <h4 class="fw-bold py-3 mb-0">{{ __('Order') }} {{ $order->order_no }}</h4>
+resources/views\admin\sales\orders\show.blade.php:16:                        <li class="breadcrumb-item active">{{ $order->order_no }}</li>
+resources/views\admin\sales\orders\show.blade.php:33:                        <p class="mb-2"><strong>{{ __('Customer') }}:</strong> {{ $order->customer?->name }}</p>
+resources/views\admin\sales\orders\show.blade.php:37:                        <p class="mb-2"><strong>{{ __('Total') }}:</strong> {{ money($order->total, 2) }}</p>
+resources/views\admin\sales\orders\show.blade.php:89:                                            <td>{{ $item->product?->name }}</td>
+resources/views\admin\sales\orders\show.blade.php:90:                                            <td>{{ $item->qty }}</td>
+resources/views\admin\sales\orders\show.blade.php:91:                                            <td>{{ money($item->price, 2) }}</td>
+resources/views\admin\sales\orders\show.blade.php:92:                                            <td>{{ money($item->line_total, 2) }}</td>
+resources/views\admin\sales\orders\index.blade.php:70:                                    <td>{{ $order->order_no }}</td>
+resources/views\admin\sales\orders\index.blade.php:71:                                    <td>{{ $order->customer?->name }}</td>
+resources/views\admin\sales\orders\index.blade.php:74:                                    <td>{{ money($order->total, 2) }}</td>
+resources/views\admin\sales\orders\index.blade.php:75:                                    <td>{{ $order->created_at?->format('Y-m-d') }}</td>
+resources/views\admin\notifications\show.blade.php:138:                                <div>{{ collect($changedFields)->map(fn ($field) => \Illuminate\Support\Str::headline((string) $field))->implode(', ') }}</div>
+resources/views\admin\notifications\show.blade.php:167:                            <div class="text-break">{{ $notification->id }}</div>
+resources/views\admin\security\users\edit.blade.php:45:            <span class="badge bg-label-primary px-3 py-2">{{ $user->email }}</span>
+resources/views\admin\security\users\edit.blade.php:101:                                            <span class="fw-medium">{{ __(ucfirst($role->name)) }}</span>
+resources/views\admin\sales\customers\index.blade.php:57:                    <a href="{{ route('admin.sales.customers.edit', $customer) }}" class="text-body fw-medium">{{ $customer->name }}</a>
+resources/views\admin\sales\customers\index.blade.php:59:                  <td>{{ $customer->email ?? '-' }}</td>
+resources/views\admin\sales\customers\index.blade.php:60:                  <td>{{ $customer->phone ?? '-' }}</td>
+resources/views\admin\sales\customers\index.blade.php:61:                  <td>{{ $customer->whatsapp ?? '-' }}</td>
+resources/views\admin\sales\customers\index.blade.php:62:                  <td>{{ $customer->city ?? '-' }}</td>
+resources/views\admin\sales\customers\edit.blade.php:58:                                <h5 class="mb-3">{{ $customer->name }}</h5>
+resources/views\admin\sales\customers\edit.blade.php:60:                                <div class="d-flex justify-content-between mb-2"><span>{{ __('Status') }}</span><span class="badge {{ $customer->is_active ? 'bg-label-success' : 'bg-label-danger' }}">{{ $customer->is_active ? __('Active') : __('Inactive') }}</span></div>
+resources/views\admin\sales\customers\edit.blade.php:106:                                        <textarea name="address" rows="2" class="form-control @error('address') is-invalid @enderror">{{ old('address', $customer->address) }}</textarea>
+resources/views\admin\sales\customers\edit.blade.php:132:                            <li class="mb-2"><span class="fw-medium">{{ __('Name') }}:</span> {{ $customer->name ?: '-' }}</li>
+resources/views\admin\sales\customers\edit.blade.php:133:                            <li class="mb-2"><span class="fw-medium">{{ __('Email') }}:</span> {{ $customer->email ?: '-' }}</li>
+resources/views\admin\sales\customers\edit.blade.php:134:                            <li class="mb-2"><span class="fw-medium">{{ __('Phone') }}:</span> {{ $customer->phone ?: '-' }}</li>
+resources/views\admin\sales\customers\edit.blade.php:135:                            <li class="mb-2"><span class="fw-medium">{{ __('WhatsApp') }}:</span> {{ $customer->whatsapp ?: '-' }}</li>
+resources/views\admin\sales\customers\edit.blade.php:136:                            <li class="mb-2"><span class="fw-medium">{{ __('City') }}:</span> {{ $customer->city ?: '-' }}</li>
+resources/views\admin\sales\customers\edit.blade.php:137:                            <li><span class="fw-medium">{{ __('Address') }}:</span> {{ $customer->address ?: '-' }}</li>
+resources/views\admin\sales\customers\edit.blade.php:145:                    <div class="col-md-4"><div class="card"><div class="card-body"><h6 class="text-muted">{{ __('Balance') }}</h6><h4 class="{{ $balanceTextClass }}">{{ $balance > 0 ? '+' : ($balance < 0 ? '-' : '') }}{{ money(abs($balance), 2) }}</h4><span class="badge {{ $balanceBadgeClass }}">{{ $balanceLabel }}</span></div></div></div>
+resources/views\admin\sales\customers\edit.blade.php:202:                                            <td>{{ optional($invoice['created_at'])->format('Y-m-d') ?: '-' }}</td>
+resources/views\admin\sales\customers\edit.blade.php:226:                                            <td>{{ optional($payment['paid_at'])->format('Y-m-d') ?: '-' }}</td>
+resources/views\admin\operations\reports\index.blade.php:181:            <span class="report-count-chip">{{ __('Show :count results', ['count' => $perPage]) }}</span>
+resources/views\admin\operations\reports\index.blade.php:195:                      <td>{{ $row->date }}</td>
+resources/views\admin\operations\reports\index.blade.php:196:                      <td>{{ money($row->total, 2) }}</td>
+resources/views\admin\operations\reports\index.blade.php:223:            <span class="report-count-chip">{{ __('Show :count results', ['count' => $perPage]) }}</span>
+resources/views\admin\operations\reports\index.blade.php:238:                      <td>{{ $row->product?->name }}</td>
+resources/views\admin\operations\reports\index.blade.php:239:                      <td>{{ $row->total_qty }}</td>
+resources/views\admin\operations\reports\index.blade.php:240:                      <td>{{ money($row->total_sales, 2) }}</td>
+resources/views\admin\operations\reports\index.blade.php:297:        <span class="report-count-chip">{{ __('Show :count results', ['count' => $perPage]) }}</span>
+resources/views\admin\operations\reports\index.blade.php:322:                    {{ (float) $row['balance'] > 0 ? '+' : ((float) $row['balance'] < 0 ? '-' : '') }}{{ money(abs((float) $row['balance']), 2) }}
+resources/views\admin\operations\reports\index.blade.php:359:            <span class="report-count-chip">{{ __('Show :count results', ['count' => $perPage]) }}</span>
+resources/views\admin\operations\reports\index.blade.php:399:                      <td>{{ optional($invoice['created_at'])->format('Y-m-d') ?: '-' }}</td>
+resources/views\admin\operations\reports\index.blade.php:431:            <span class="report-count-chip">{{ __('Show :count results', ['count' => $perPage]) }}</span>
+resources/views\admin\operations\reports\index.blade.php:448:                      <td>{{ optional($payment['paid_at'])->format('Y-m-d') ?: '-' }}</td>
+resources/views\admin\security\users\create.blade.php:91:                                            <span class="fw-medium">{{ __(ucfirst($role->name)) }}</span>
+resources/views\admin\notifications\index.blade.php:66:                                        <small class="text-muted">{{ optional($notification->created_at)->diffForHumans() }}</small>
+resources/views\admin\products\edit.blade.php:103:                        <textarea name="description" class="form-control @error('description') is-invalid @enderror" rows="4">{{ old('description', $product->description) }}</textarea>
+resources/views\admin\myprofile\index.blade.php:46:                        <h5 class="mb-1">{{ $user?->name ?? '-' }}</h5>
+resources/views\admin\myprofile\index.blade.php:86:                                <span class="badge bg-label-primary">{{ __(ucfirst((string) $role->name)) }}</span>
+resources/views\admin\myprofile\index.blade.php:114:                                        <td><span class="badge bg-label-primary">{{ ucfirst((string) $log->action) }}</span></td>
+resources/views\admin\myprofile\index.blade.php:115:                                        <td>{{ ucfirst((string) $log->entity_type) }} #{{ $log->entity_id ?? '-' }}</td>
+resources/views\admin\myprofile\index.blade.php:116:                                        <td>{{ (string) ($log->meta['name'] ?? __('System update')) }}</td>
+resources/views\admin\myprofile\index.blade.php:117:                                        <td>{{ $log->created_at?->diffForHumans() }}</td>
+resources/views\admin\myprofile\index.blade.php:132:                        <span class="badge bg-label-secondary">{{ ($recentNotifications ?? collect())->count() }}</span>
+resources/views\admin\myprofile\index.blade.php:148:                                        <td>{{ (string) ($payload['title'] ?? class_basename($notification->type)) }}</td>
+resources/views\admin\myprofile\index.blade.php:155:                                        <td>{{ $notification->created_at?->format('Y-m-d H:i') }}</td>
+resources/views\admin\orders\show.blade.php:99:                <h4 class="fw-bold py-3 mb-1">{{ __('Order') }} #{{ $order->order_no }}</h4>
+resources/views\admin\orders\show.blade.php:103:                        <span class="text-muted small">{{ $order->created_at->format('M d, Y, h:i A') }}</span>
+resources/views\admin\orders\show.blade.php:175:                                                <td><span data-row-number>{{ $loop->iteration }}</span></td>
+resources/views\admin\orders\show.blade.php:240:                                        <strong data-summary-subtotal>{{ money($order->subtotal, 2) }}</strong>
+resources/views\admin\orders\show.blade.php:247:                                        <strong data-summary-total>{{ money($order->total, 2) }}</strong>
+resources/views\admin\orders\show.blade.php:297:                                        <small class="text-muted">{{ $event['time']?->format('M d, H:i') }}</small>
+resources/views\admin\orders\show.blade.php:317:                            <span class="fw-semibold">{{ money((float) $order->total, 2) }}</span>
+resources/views\admin\orders\show.blade.php:396:                                            <small class="text-muted">{{ optional($allocation->allocated_at ?? $allocation->created_at)->format('Y-m-d') }}</small>
+resources/views\admin\orders\show.blade.php:398:                                        <span class="badge bg-label-secondary">{{ __(ucfirst(str_replace('_', ' ', (string) ($payment?->source ?? 'migration')))) }}</span>
+resources/views\admin\orders\show.blade.php:424:                                    <div class="small text-muted">{{ __('Customer ID') }} #{{ $order->customer_id }}</div>
+resources/views\admin\notifications\compose.blade.php:54:                                    <small class="text-muted">({{ $users->count() }})</small>
+resources/views\admin\notifications\compose.blade.php:64:                                                        <div class="fw-semibold">{{ $user->name }}</div>
+resources/views\admin\notifications\compose.blade.php:65:                                                        <small class="text-muted">{{ $user->email }}</small>
+resources/views\admin\notifications\compose.blade.php:81:                                    <small class="text-muted">({{ $roles->count() }})</small>
+resources/views\admin\notifications\compose.blade.php:90:                                                    <div class="fw-semibold">{{ $role->name }}</div>
+resources/views\admin\notifications\compose.blade.php:101:                                    <small class="text-muted">({{ $customers->count() }})</small>
+resources/views\admin\notifications\compose.blade.php:117:                                                        <div class="fw-semibold">{{ $customer->name }} @if(!$customer->is_active) <span class="text-danger">({{ __('Inactive') }})</span> @endif</div>
+resources/views\admin\notifications\compose.blade.php:118:                                                        <small class="text-muted">@if(!empty($customer->email)){{ $customer->email }}@elseif(!empty($customer->phone)){{ $customer->phone }}@endif</small>
+resources/views\admin\orders\partials\table-rows.blade.php:17:                class="text-body fw-medium">{{ $order->order_no }}</a>
+resources/views\admin\orders\partials\table-rows.blade.php:25:                    class="text-body">{{ $order->customer->name }}</a>
+resources/views\admin\orders\partials\table-rows.blade.php:31:        <td>{{ money($order->paid_amount, 2) }}</td>
+resources/views\admin\orders\partials\table-rows.blade.php:32:        <td>{{ money($order->due_amount, 2) }}</td>
+resources/views\admin\orders\partials\table-rows.blade.php:36:        <td>{{ money($order->total, 2) }}</td>
+resources/views\admin\orders\partials\table-rows.blade.php:37:        <td>{{ $order->created_at?->format('Y-m-d') }}</td>

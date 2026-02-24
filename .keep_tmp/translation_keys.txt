@@ -1,0 +1,481 @@
+Account
+Account & Access
+Account Info
+Action
+Actions
+Active
+Active Categories
+Active Customers
+Active Users
+Active Warehouses
+Activities
+Activity Logs
+Add Category
+Add Customer
+Add Item
+Add Movement
+Add Product
+Add User
+Add Warehouse
+Additional Images
+Address
+Address (from app)
+Address line 1
+Address line 2
+Admin
+Admin Portal
+Affiliate
+All
+All active customers
+All Categories
+All Invoices
+All Logs
+All Movements
+All Orders
+All users
+All users and customers
+Allocated
+Allocated Amount
+Amount
+Appearance
+Appearance settings updated successfully.
+Approved
+Approved Invoices
+Arabic
+Assigned Users
+Auto-save failed
+Available Roles
+Avg Order
+Awaiting approval
+Back
+Back to notifications
+Balance
+Balanced
+Base permissions come from selected roles
+Billing Plan
+Block
+Blocked
+Blocked For This User
+Blocked permissions
+Brand
+Cancel
+Cancelled
+Cannot delete role assigned to users.
+Cannot register payment for a cancelled order.
+Card
+Cash
+Catalog
+Categories
+Category
+Category created successfully.
+Category deleted successfully.
+Category name
+Category status updated.
+Category updated successfully.
+Change Password
+Changed Fields
+Changing roles affects baseline permissions only for this user.
+City
+Clear
+Clear all
+Clear Overrides
+Company Growth
+Completed
+Completed Payments
+Compose
+Compose Notification
+Confirm Password
+Congratulations!
+Country
+Cover Image
+Create
+Create Actions
+Create Category
+Create Customer
+Create Inventory Movement
+Create login credentials and assign base roles first, then fine-tune permissions below.
+Create Movement
+Create Product
+Create Role
+Create User
+Create Warehouse
+Created
+Creditor
+Customer
+Customer Account
+Customer created successfully.
+Customer deleted successfully.
+Customer details
+Customer ID
+Customer Ledger
+Customer Name
+Customer Profile
+Customer updated successfully.
+Customers
+Customers With Orders
+Dark
+Dashboard
+Date
+Debtor
+Declined
+Delete
+Delete this category?
+Delete this customer?
+Delete this product?
+Delete this role?
+Delete this warehouse?
+Delivered
+Description
+Details
+Direct grants
+Disabled
+Discount
+Dispatched
+Due
+Duplicate invoice item rows are not allowed.
+Edit
+Edit Category
+Edit Customer
+Edit Product
+Edit Role
+Edit User
+Edit Warehouse
+Effective Permissions
+Effective permissions now
+Effective total
+Email
+Enabled
+English
+Enter your account credentials to continue.
+Entity
+Entity ID
+Example: support_agent
+Existing Images
+Expense
+Expenses
+Export
+Failed Payments
+FIFO Allocation
+Filter
+Form Checklist
+From
+From roles
+General Settings
+Grant
+Grant All
+Grant or block permissions for this user only (role itself stays unchanged).
+Growth
+Hide
+High Value Orders
+In
+In transit
+In-store Sales
+Inactive
+Inactive customers cannot receive notifications.
+Income
+Income this week
+Inherited from role
+Inherited from roles
+Insufficient stock for one or more items.
+Inventory
+Inventory movement created successfully.
+Inventory Movements
+Invoice
+Invoice and customer details updated.
+Invoice items
+Invoice items are locked after shipping or closing the order.
+Invoice items can only be edited while the order is pending or approved.
+Invoice items updated.
+Invoice List
+Invoice Total
+Invoice Value
+Invoices
+Invoices (Total / Paid / Due)
+Invoices Total
+Last 28 Days
+Last Activity
+Last Month
+Last Year
+Leave password empty to keep current one.
+Ledger
+less than last week
+Light
+Line Total
+Location
+Locations
+Log in
+Log Out
+Login
+Low
+Low stock alert
+Low Stock Products
+Made In
+made with ❤️ by
+Mark all as read
+Mark as read
+Message
+Message Date
+Meta
+Method
+Mobile
+My Profile
+Name
+Name or SKU
+Name, email and phone are required.
+Net Position
+New
+New Customer
+New Order
+New order created
+New Password
+New Profile Data
+New This Month
+No activity logs.
+No activity yet
+No activity yet.
+No blocked permissions
+No categories found.
+No customers found.
+No data.
+No details available.
+No direct grants
+No events yet.
+No inventory movements.
+No invoice items yet. Add at least one item.
+No invoices found.
+No items found.
+No message content.
+No notifications yet.
+No orders found.
+No payments found.
+No products found.
+No role permissions
+No roles assigned
+No roles found.
+No shipping address provided.
+No users found.
+No valid recipients selected.
+No warehouses found.
+Not enough stock available.
+Not provided
+Note
+Notes
+Notification Details
+Notification history is shown in Account tab.
+Notification ID
+Notifications
+of
+Old Profile Data
+On
+One of the invoice items is invalid.
+One of the selected products is inactive and cannot be used.
+Open Invoices
+Open Order
+Operations
+Order
+Order Details
+Order has been returned
+Order Items
+Order No
+Order Number
+Order Statistics
+Order status
+Order status updated
+Order status updated.
+Order Summary
+Order updated
+Order was cancelled
+Order was placed
+Orders
+Orders (Last 30 Days)
+Out
+Package has been delivered to customer
+Package has been picked up by courier
+Paid
+Paid Amount
+Paid At
+Partial Payment
+Password
+Password is required for new customer.
+Pay Debt / Add Credit
+Payment
+Payment added and allocated successfully.
+Payment added successfully.
+Payment received
+Payment update
+Payments
+Payments History
+Payments Log
+Payments Total
+Pending
+Pending Invoices
+Pending Payments
+Permission Overrides
+Permission Security
+Permissions
+Permissions Matrix
+Permissions Overview
+Permissions Snapshot
+Phone
+Postal code
+Price
+Print Invoice
+Product
+Product created successfully.
+Product deleted successfully.
+Product status updated.
+Product updated successfully.
+Products
+Products Linked
+Profile
+Profile Report
+Profit
+Protected
+Qty
+Read
+Recent Activity
+Recent Notifications
+Recent Security Events
+Recipients
+Refresh
+Remaining
+Remember me
+Remove cover
+Remove item
+Report
+Reports
+Reset
+results
+Returned
+Role
+Role created successfully.
+Role deleted successfully.
+Role Name
+Role name is fixed. Edit permission matrix below.
+Role Permissions
+Role permissions updated.
+Roles
+Roles & Permissions
+Roles With Permissions
+RTL
+Sales
+Sales (Last 7 Days)
+Sales by Day
+Save
+Save Customer
+Save Customer & Shipping Details
+Save Invoice Items
+Save Payment
+Save User
+Saved
+Saving...
+Search
+Search customers...
+Search Product
+Search roles...
+Search users...
+Search...
+Security
+Select All
+Select All Visible
+Select Category
+Select product
+Select recipients on the right
+Select Warehouse
+Send
+Send notification to this user
+Sender Name
+Settings
+Settings updated successfully.
+Share
+Shipped
+Shipping activity
+Shipping address
+Show
+Showing
+Sign in
+Sign in to manage products, orders, inventory, and customer operations from one place.
+Site Name
+SKU
+Slug
+Snapshot
+sold
+Sound Effects
+Source
+Staff
+State
+Status
+Stock
+Stock In Qty
+Stock Out Qty
+Stock Qty
+Subject
+Submit Payment
+Subtotal
+Support Email
+Support Phone
+System
+System update
+Theme
+These credentials do not match our records.
+This role is protected and cannot be deleted.
+Title
+to
+Today Logs
+Toggle Dropdown
+Toggle menu pin
+Top Products
+Total
+Total Balance
+Total Categories
+Total Credits
+Total Customers
+Total Debts
+Total Invoiced
+Total Orders
+Total Permissions
+Total Revenue
+Total Roles
+Total Sales
+Total Users
+Total Warehouses
+Transactions
+Transfer
+Type
+Unallocated
+Unallocated Credit
+Unknown product
+Unread
+Unsaved changes
+Update
+Update Customer
+Update Password
+Update Status
+Update User
+Update user info, assign roles, then apply per-user permission overrides without touching role defaults.
+Use active status to allow customer access.
+Used Categories
+User
+User created successfully.
+User password updated successfully.
+User Profile
+User updated successfully.
+Username
+Users
+Users & Security
+Users With Roles
+View
+View all notifications
+View More
+View Orders
+Warehouse
+Warehouse created successfully.
+Warehouse deleted successfully.
+Warehouse updated successfully.
+Warehouses
+Website Sales
+Welcome back to Super3000
+WhatsApp
+When
+You are not allowed to access the dashboard.
+You are not allowed to change this password.
