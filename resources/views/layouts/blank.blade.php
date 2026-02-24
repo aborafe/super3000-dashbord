@@ -36,6 +36,7 @@
 
     <link rel="stylesheet" href="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/vendor/css/core.css" />
     <link rel="stylesheet" href="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/css/demo.css" />
+    <link rel="stylesheet" href="{{ asset('loading-ui.css') }}" />
     <link rel="stylesheet" href="{{ asset('admin-overrides.css') }}" />
 
     <!-- Vendors CSS -->

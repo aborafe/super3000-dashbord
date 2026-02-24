@@ -13,7 +13,11 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Services\InventoryService;
 use App\Support\ActivityLogger;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -21,44 +25,16 @@ use Illuminate\View\View;
 
 class ProductController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $search = request('q');
-        $status = request('status');
-        $categoryId = request('category_id');
-        $stock = request('stock');
-        $perPage = (int) request('per_page', 10);
+        $search = $request->query('q');
+        $status = $request->query('status');
+        $categoryId = $request->query('category_id');
+        $stock = $request->query('stock');
+        $perPage = (int) $request->query('per_page', 10);
         $perPage = in_array($perPage, [10, 25, 50], true) ? $perPage : 10;
 
-        $statusValue = null;
-        if (is_string($status) && $status !== '') {
-            $normalized = Str::lower($status);
-            if (in_array($normalized, ['active', '1', 'true'], true)) {
-                $statusValue = true;
-            } elseif (in_array($normalized, ['inactive', '0', 'false'], true)) {
-                $statusValue = false;
-            }
-        }
-
-        $products = Product::query()
-            ->with('category')
-            ->when($search, function ($query) use ($search) {
-                $query->where(function ($inner) use ($search) {
-                    $inner->where('name', 'like', '%' . $search . '%')
-                        ->orWhere('sku', 'like', '%' . $search . '%');
-                });
-            })
-            ->when($statusValue !== null, fn($query) => $query->where('is_active', $statusValue))
-            ->when($categoryId, fn($query) => $query->where('category_id', $categoryId))
-            ->when($stock, function ($query) use ($stock) {
-                if ($stock === 'in') {
-                    $query->where('stock_qty', '>', 10);
-                } elseif ($stock === 'low') {
-                    $query->whereBetween('stock_qty', [1, 10]);
-                } elseif ($stock === 'out') {
-                    $query->where('stock_qty', '<=', 0);
-                }
-            })
+        $products = $this->filteredProductsQuery($request)
             ->orderBy('name')
             ->paginate($perPage)
             ->withQueryString();
@@ -100,6 +76,42 @@ class ProductController extends Controller
             'perPage',
             'stats'
         ));
+    }
+
+    public function export(Request $request, string $format): Response|StreamedResponse
+    {
+        $normalizedFormat = Str::lower(trim($format));
+        if (!in_array($normalizedFormat, ['csv', 'excel', 'pdf'], true)) {
+            abort(404);
+        }
+
+        $products = $this->filteredProductsQuery($request)
+            ->orderBy('name')
+            ->get();
+
+        $exportedAt = now();
+        $fileSuffix = $exportedAt->format('Ymd_His');
+        $baseName = "products_{$fileSuffix}";
+
+        if ($normalizedFormat === 'csv') {
+            return $this->streamProductsCsv($products, "{$baseName}.csv");
+        }
+
+        if ($normalizedFormat === 'excel') {
+            return response()
+                ->view('admin.products.exports.excel', [
+                    'products' => $products,
+                    'exportedAt' => $exportedAt,
+                ])
+                ->header('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
+                ->header('Content-Disposition', 'attachment; filename="'.$baseName.'.xls"');
+        }
+
+        return response()->view('admin.products.exports.pdf', [
+            'products' => $products,
+            'exportedAt' => $exportedAt,
+            'autoPrint' => true,
+        ]);
     }
 
     public function create(): View
@@ -292,6 +304,84 @@ class ProductController extends Controller
         ActivityLogger::log('updated', 'product', $product->id, ['is_active' => $product->is_active]);
 
         return redirect()->back()->with('success', __('Product status updated.'));
+    }
+
+    private function filteredProductsQuery(Request $request): Builder
+    {
+        $search = $request->query('q');
+        $status = $request->query('status');
+        $categoryId = $request->query('category_id');
+        $stock = $request->query('stock');
+
+        $statusValue = null;
+        if (is_string($status) && $status !== '') {
+            $normalized = Str::lower($status);
+            if (in_array($normalized, ['active', '1', 'true'], true)) {
+                $statusValue = true;
+            } elseif (in_array($normalized, ['inactive', '0', 'false'], true)) {
+                $statusValue = false;
+            }
+        }
+
+        return Product::query()
+            ->with('category')
+            ->when($search, function ($query) use ($search): void {
+                $query->where(function ($inner) use ($search): void {
+                    $inner->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('sku', 'like', '%' . $search . '%');
+                });
+            })
+            ->when($statusValue !== null, fn ($query) => $query->where('is_active', $statusValue))
+            ->when($categoryId, fn ($query) => $query->where('category_id', $categoryId))
+            ->when($stock, function ($query) use ($stock): void {
+                if ($stock === 'in') {
+                    $query->where('stock_qty', '>', 10);
+                } elseif ($stock === 'low') {
+                    $query->whereBetween('stock_qty', [1, 10]);
+                } elseif ($stock === 'out') {
+                    $query->where('stock_qty', '<=', 0);
+                }
+            });
+    }
+
+    /**
+     * @param \Illuminate\Support\Collection<int, \App\Models\Product> $products
+     */
+    private function streamProductsCsv($products, string $filename): StreamedResponse
+    {
+        return response()->streamDownload(function () use ($products): void {
+            $output = fopen('php://output', 'wb');
+            if ($output === false) {
+                return;
+            }
+
+            // UTF-8 BOM for Arabic compatibility in Excel.
+            fwrite($output, "\xEF\xBB\xBF");
+
+            fputcsv($output, [
+                __('Product'),
+                __('Category'),
+                __('SKU'),
+                __('Price'),
+                __('Qty'),
+                __('Status'),
+            ]);
+
+            foreach ($products as $product) {
+                fputcsv($output, [
+                    (string) $product->name,
+                    (string) ($product->category?->name ?? ''),
+                    (string) $product->sku,
+                    (float) $product->price,
+                    (int) $product->stock_qty,
+                    $product->is_active ? __('Active') : __('Inactive'),
+                ]);
+            }
+
+            fclose($output);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     private function resolveIndexRouteName(): string

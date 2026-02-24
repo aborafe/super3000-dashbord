@@ -84,6 +84,7 @@
     <link rel="stylesheet" href="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/vendor/css/core.css" />
     <link rel="stylesheet" href="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/css/demo.css" />
     <link rel="stylesheet" href="{{ asset('theme.css') }}" />
+    <link rel="stylesheet" href="{{ asset('loading-ui.css') }}" />
     <link rel="stylesheet" href="{{ asset('admin-overrides.css') }}" />
     <link rel="stylesheet" href="{{ asset('responsive-fixes.css') }}" />
     <link rel="stylesheet" href="{{ asset('css/responsive-rtl-fixes.css') }}">

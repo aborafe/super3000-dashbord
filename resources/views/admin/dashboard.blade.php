@@ -605,54 +605,63 @@
                 <tr>
                   <th>{{ __('Product') }}</th>
                   <th>{{ __('Category') }}</th>
-                  <th>{{ __('Payment') }}</th>
-                  <th>{{ __('Status') }}</th>
+                  <th>{{ __('Qty') }}</th>
+                  <th>{{ __('Total Sales') }}</th>
+                  <th>{{ __('Orders') }}</th>
+                  <th>{{ __('Date') }}</th>
                   <th>{{ __('Actions') }}</th>
                 </tr>
               </thead>
               <tbody>
                 @forelse($topProducts as $item)
                   @php
-                    $latestOrder = $item->latestOrder;
-                    $status = $latestOrder?->normalized_status ?? 'pending';
-                    $statusClass = match ($status) {
-                      'approved' => 'bg-label-success',
-                      'shipped' => 'bg-label-info',
-                      'delivered' => 'bg-label-primary',
-                      'returned' => 'bg-label-secondary',
-                      'cancelled' => 'bg-label-danger',
-                      default => 'bg-label-warning',
-                    };
+                    $product = $item->product;
+                    $productId = (int) ($item->product_id ?? 0);
+                    $productEditUrl = $productId > 0
+                      ? route('admin.products.edit', ['locale' => $locale, 'product' => $productId])
+                      : route('admin.products.index', ['locale' => $locale]);
+                    $soldQty = (int) ($item->sold_qty ?? 0);
+                    $totalSalesAmount = (float) ($item->total_sales ?? 0);
+                    $ordersCountForProduct = (int) ($item->orders_count ?? 0);
+                    $lastSoldAt = !empty($item->last_sold_at) ? \Illuminate\Support\Carbon::parse((string) $item->last_sold_at) : null;
                   @endphp
-                  <tr data-product-link="{{ route('admin.products.edit', ['locale' => $locale, 'product' => $item->product_id]) }}" style="cursor: pointer;">
+                  <tr data-product-link="{{ $productEditUrl }}" style="cursor: pointer;">
                     <td>
                       <div class="d-flex align-items-center">
                         <div class="avatar me-2">
-                          <img src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/img/elements/2.png" alt="Product" class="rounded" />
-                        </div>
+<img
+    src="{{ $product?->cover_image
+            ? asset('storage/' . $product->cover_image)
+            : asset('sneat-bootstrap-html-admin-template-free/assets/img/elements/2.png')
+        }}"
+    alt="Product"
+    class="rounded"
+/>                        </div>
                         <div>
                           <h6 class="mb-0">
-                            <a href="{{ route('admin.products.edit', ['locale' => $locale, 'product' => $item->product_id]) }}" class="text-body">
-                              {{ $item->product?->name ?? __('Product') }}
+                            <a href="{{ $productEditUrl }}" class="text-body">
+                              {{ $product?->name ?? __('Product') }}
                             </a>
                           </h6>
-                          <small class="text-muted">{{ number_format($item->sold_qty) }} {{ __('sold') }}</small>
+                          <small class="text-muted">{{ number_format($soldQty) }} {{ __('sold') }}</small>
                         </div>
                       </div>
                     </td>
-                    <td>{{ $item->product?->category?->name ?? __('Category') }}</td>
-                    <td>{{ __(ucfirst((string) ($item->latestPayment?->method ?? 'card'))) }}</td>
-                    <td><span class="badge {{ $statusClass }}">{{ __(ucfirst($status)) }}</span></td>
+                    <td>{{ $product?->category?->name ?? __('Category') }}</td>
+                    <td>{{ number_format($soldQty) }}</td>
+                    <td>{{ money($totalSalesAmount, 2) }}</td>
+                    <td>{{ number_format($ordersCountForProduct) }}</td>
+                    <td>{{ $lastSoldAt?->format('Y-m-d H:i') ?? '-' }}</td>
                     <td>
                       <div class="dropdown">
                         <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
                           <i class="icon-base bx bx-dots-vertical-rounded"></i>
                         </button>
                         <div class="dropdown-menu">
-                          <a class="dropdown-item" href="{{ route('admin.products.edit', ['locale' => $locale, 'product' => $item->product_id]) }}">
+                          <a class="dropdown-item" href="{{ $productEditUrl }}">
                             <i class="icon-base bx bx-edit-alt me-1"></i> {{ __('Edit') }}
                           </a>
-                          <a class="dropdown-item" href="{{ route('admin.products.edit', ['locale' => $locale, 'product' => $item->product_id]) }}">
+                          <a class="dropdown-item" href="{{ $productEditUrl }}">
                             <i class="icon-base bx bx-show me-1"></i> {{ __('View') }}
                           </a>
                         </div>
@@ -661,7 +670,7 @@
                   </tr>
                 @empty
                   <tr>
-                    <td colspan="5" class="text-center text-muted">{{ __('No data.') }}</td>
+                    <td colspan="7" class="text-center text-muted">{{ __('No data.') }}</td>
                   </tr>
                 @endforelse
               </tbody>
@@ -676,5 +685,3 @@
 @section('page-scripts')
   <script src="{{ asset('admin-dashboard.js') }}"></script>
 @endsection
-
-

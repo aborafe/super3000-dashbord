@@ -8,6 +8,7 @@ use App\Models\Product;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 class ProductController extends ApiController
@@ -22,6 +23,7 @@ class ProductController extends ApiController
     private const SORT_BEST_SELLING = 'best_selling';
     private const SORT_PRICE_ASC = 'price_asc';
     private const SORT_PRICE_DESC = 'price_desc';
+    private const MIN_AVAILABLE_QTY = 1;
 
     public function index(Request $request): JsonResponse
     {
@@ -40,6 +42,7 @@ class ProductController extends ApiController
             ->withCount('images')
             ->where('is_active', true);
 
+        $this->applyInStockFilter($productsQuery);
         $this->includeSoldQty($productsQuery);
 
         if ($request->filled('category_id')) {
@@ -106,6 +109,10 @@ class ProductController extends ApiController
 
     public function show(Product $product): JsonResponse
     {
+        if (! $this->isProductVisibleInApi($product)) {
+            return $this->error('Product not found', 404);
+        }
+
         $product->loadMissing(['category', 'images']);
 
         return $this->success(new ProductResource($product), 200, 'Product fetched');
@@ -202,6 +209,40 @@ class ProductController extends ApiController
                 });
             },
         ], 'qty');
+    }
+
+    private function applyInStockFilter(Builder $query): void
+    {
+        if (Schema::hasTable('product_stocks')) {
+            $query->where(function (Builder $stockQuery): void {
+                $stockQuery
+                    ->whereRaw(
+                        '(SELECT COALESCE(SUM(ps.qty), 0) FROM product_stocks ps WHERE ps.product_id = products.id) >= ?',
+                        [self::MIN_AVAILABLE_QTY]
+                    )
+                    ->orWhere('stock_qty', '>=', self::MIN_AVAILABLE_QTY);
+            });
+
+            return;
+        }
+
+        $query->where('stock_qty', '>=', self::MIN_AVAILABLE_QTY);
+    }
+
+    private function isProductVisibleInApi(Product $product): bool
+    {
+        if (! (bool) $product->is_active) {
+            return false;
+        }
+
+        if (Schema::hasTable('product_stocks')) {
+            $stockQty = (int) $product->stocks()->sum('qty');
+            if ($stockQty >= self::MIN_AVAILABLE_QTY) {
+                return true;
+            }
+        }
+
+        return (int) $product->stock_qty >= self::MIN_AVAILABLE_QTY;
     }
 
     private function normalizeFilter(mixed $value): string

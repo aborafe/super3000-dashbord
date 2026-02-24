@@ -154,34 +154,22 @@ class DashboardController extends Controller
             : 0;
 
         $topProducts = OrderItem::query()
-            ->select('product_id', DB::raw('SUM(qty) as sold_qty'))
+            ->select([
+                'order_items.product_id',
+                DB::raw('SUM(order_items.qty) as sold_qty'),
+                DB::raw('SUM(order_items.line_total) as total_sales'),
+                DB::raw('COUNT(DISTINCT order_items.order_id) as orders_count'),
+                DB::raw('MAX(orders.created_at) as last_sold_at'),
+            ])
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->whereNotNull('order_items.product_id')
+            ->where('orders.status', '!=', Order::STATUS_CANCELLED)
             ->with(['product.category'])
-            ->groupBy('product_id')
+            ->groupBy('order_items.product_id')
+            ->orderByDesc('total_sales')
             ->orderByDesc('sold_qty')
             ->take(6)
             ->get();
-
-        $topProductIds = $topProducts->pluck('product_id')->filter()->unique()->values();
-        $latestItems = OrderItem::query()
-            ->with(['order.payments' => function ($query): void {
-                $query
-                    ->orderByRaw('COALESCE(paid_at, created_at) DESC')
-                    ->orderByDesc('id');
-            }])
-            ->whereIn('product_id', $topProductIds)
-            ->latest('id')
-            ->get()
-            ->unique('product_id')
-            ->keyBy('product_id');
-
-        $topProducts = $topProducts->map(function ($item) use ($latestItems) {
-            $latestItem = $latestItems->get($item->product_id);
-            $item->latestOrder = $latestItem?->order;
-            $item->latestPayment = $latestItem?->order?->payments?->firstWhere('status', 'paid')
-                ?? $latestItem?->order?->payments?->first();
-
-            return $item;
-        });
 
         return view('admin.dashboard', compact(
             'stats',

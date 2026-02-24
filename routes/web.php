@@ -53,6 +53,9 @@ Route::prefix('{locale}/admin')
         Route::patch('products/{product}/toggle', [ProductController::class, 'toggle'])
             ->middleware('can:products.update')
             ->name('products.toggle');
+        Route::get('products/export/{format}', [ProductController::class, 'export'])
+            ->middleware('can:products.view')
+            ->name('products.export');
         Route::resource('products', ProductController::class)
             ->only(['index'])
             ->middleware('can:products.view')
@@ -95,6 +98,9 @@ Route::prefix('{locale}/admin')
         Route::get('invoices', [InvoiceController::class, 'index'])
             ->middleware('can:orders.view')
             ->name('invoices.index');
+        Route::get('invoices/export/{format}', [InvoiceController::class, 'export'])
+            ->middleware('can:orders.view')
+            ->name('invoices.export');
         Route::get('invoices/{order}/print', [InvoiceController::class, 'print'])
             ->middleware('can:orders.view')
             ->name('invoices.print');

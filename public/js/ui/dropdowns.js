@@ -264,6 +264,7 @@ const bindNotificationsUi = () => {
         cache: 'no-store',
         headers: {
           Accept: 'application/json',
+          'X-Background-Request': '1',
           'X-Requested-With': 'XMLHttpRequest',
         },
       });
