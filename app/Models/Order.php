@@ -15,6 +15,9 @@ use Illuminate\Support\Carbon;
  * @property int|null $customer_id
  * @property int|null $user_id
  * @property string $status
+ * @property string|null $customer_name
+ * @property string|null $customer_email
+ * @property string|null $customer_phone
  * @property string|null $customer_notes
  * @property array<string, mixed>|null $shipping_address
  * @property array<string, mixed>|null $billing_address

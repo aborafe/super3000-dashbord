@@ -4,6 +4,7 @@
 
 @section('content')
     @php
+        /** @var \App\Models\Order $order */
         $customerName = $order->customer?->name ?? '';
         $customerEmail = $order->customer?->email ?? '';
         $customerPhone = $order->customer?->phone ?? '';
@@ -155,7 +156,10 @@
                             </thead>
                             <tbody>
                                 @forelse ($order->items as $item)
-                                    @php $lineDiscount = (float) $item->discount_total; @endphp
+                                    @php
+                                        /** @var \App\Models\OrderItem $item */
+                                        $lineDiscount = (float) $item->discount_total;
+                                    @endphp
                                     <tr>
                                         <td>{{ $item->product?->name ?? __('Unknown product') }}</td>
                                         <td>{{ money((float) $item->price, 2) }}</td>

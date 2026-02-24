@@ -6,9 +6,27 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
+ * @property int|null $order_id
+ * @property int|null $customer_id
+ * @property float|string $amount
+ * @property string $method
+ * @property string $status
+ * @property string|null $source
+ * @property string|null $notes
+ * @property int|null $created_by
+ * @property Carbon|null $paid_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read float $allocated_amount
+ * @property-read float $unallocated_amount
+ * @property-read Order|null $order
+ * @property-read Customer|null $customer
+ * @property-read User|null $createdBy
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, PaymentAllocation> $allocations
  */
 class Payment extends Model
 {
