@@ -68,7 +68,9 @@ class OrderPaymentRecorded extends Notification
             'due_before' => round($this->dueBefore, 2),
             'due_after' => round($this->dueAfter, 2),
             'is_partial' => $isPartial,
-            'route' => '/order/'.$this->order->id,
+            // Keep route as route-name (not URL path) to avoid RouteNotFoundException
+            // in templates that call route($payload['route'], ...).
+            'route' => 'admin.orders.show',
             'admin_route' => 'admin.orders.show',
             'route_params' => [
                 'order' => $this->order->id,
@@ -76,4 +78,3 @@ class OrderPaymentRecorded extends Notification
         ];
     }
 }
-

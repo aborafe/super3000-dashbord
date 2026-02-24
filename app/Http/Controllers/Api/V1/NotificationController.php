@@ -123,12 +123,15 @@ class NotificationController extends ApiController
 
     protected function transformNotification(DatabaseNotification $notification): array
     {
+        $data = is_array($notification->data) ? $notification->data : [];
+        $data = localized_notification_payload($data, $notification->type);
+
         return [
             'id' => (string) $notification->id,
-            'type' => (string) ($notification->data['type'] ?? class_basename($notification->type)),
-            'title' => (string) ($notification->data['title'] ?? ''),
-            'message' => (string) ($notification->data['message'] ?? ''),
-            'data' => $notification->data,
+            'type' => (string) ($data['type'] ?? class_basename($notification->type)),
+            'title' => (string) ($data['title'] ?? ''),
+            'message' => (string) ($data['message'] ?? ''),
+            'data' => $data,
             'read_at' => $notification->read_at?->toISOString(),
             'created_at' => $notification->created_at?->toISOString(),
         ];

@@ -493,9 +493,9 @@
                                         <ul class="list-group list-group-flush overflow-auto"
                                             style="max-height:320px;">
                                             @forelse ($headerNotifications as $notification)
-                                                @php $payload = is_array($notification->data) ? $notification->data : []; @endphp
+                                                @php $payload = localized_notification_payload(is_array($notification->data) ? $notification->data : [], $notification->type); @endphp
                                                 @php $isRead = $notification->read_at !== null; @endphp
-                                                @php $title = (string) ($payload['title'] ?? class_basename($notification->type)); @endphp
+                                                @php $title = (string) ($payload['title'] ?? __(\Illuminate\Support\Str::headline(class_basename($notification->type)))); @endphp
                                                 @php $message = (string) ($payload['message'] ?? ''); @endphp
                                                 <li
                                                     class="list-group-item list-group-item-action dropdown-notifications-item {{ $isRead ? 'is-read' : '' }}">

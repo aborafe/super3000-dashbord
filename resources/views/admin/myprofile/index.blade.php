@@ -147,7 +147,7 @@
                             </thead>
                             <tbody>
                                 @forelse ($recentNotifications ?? collect() as $notification)
-                                    @php $payload = is_array($notification->data) ? $notification->data : []; @endphp
+                                    @php $payload = localized_notification_payload(is_array($notification->data) ? $notification->data : [], $notification->type); @endphp
                                     <tr>
                                         <td>{{ (string) ($payload['title'] ?? __(\Illuminate\Support\Str::headline(class_basename($notification->type)))) }}</td>
                                         <td>{{ \Illuminate\Support\Str::limit((string) ($payload['message'] ?? '-'), 70, '...') }}</td>

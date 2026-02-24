@@ -44,7 +44,7 @@
             <div class="card-body p-0">
                 <ul class="list-group list-group-flush">
                     @forelse ($notifications as $notification)
-                        @php $payload = is_array($notification->data) ? $notification->data : []; @endphp
+                        @php $payload = localized_notification_payload(is_array($notification->data) ? $notification->data : [], $notification->type); @endphp
                         @php $isRead = $notification->read_at !== null; @endphp
                         @php $title = (string) ($payload['title'] ?? __(\Illuminate\Support\Str::headline(class_basename($notification->type)))); @endphp
                         @php $message = (string) ($payload['message'] ?? ''); @endphp

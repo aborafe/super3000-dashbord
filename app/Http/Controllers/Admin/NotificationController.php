@@ -65,7 +65,8 @@ class NotificationController extends Controller
         }
 
         $payload = is_array($target->data) ? $target->data : [];
-        $title = (string) ($payload['title'] ?? class_basename($target->type));
+        $payload = localized_notification_payload($payload, $target->type);
+        $title = (string) ($payload['title'] ?? __(\Illuminate\Support\Str::headline(class_basename($target->type))));
         $message = (string) ($payload['message'] ?? '');
         $notificationType = (string) ($payload['type'] ?? '');
         $locale = (string) app()->getLocale();
@@ -85,7 +86,7 @@ class NotificationController extends Controller
         }
 
         $messageDetails = null;
-        if ($notificationType === 'admin_message') {
+        if ($notificationType === 'admin_message' || $notificationType === 'customer_profile_updated') {
             $template = 'message';
             $messageDetails = [
                 'sender_name' => (string) ($payload['sender_name'] ?? __('System')),
@@ -117,10 +118,11 @@ class NotificationController extends Controller
         $payload = $notifications
             ->map(function ($notification) use ($locale): array {
                 $data = is_array($notification->data) ? $notification->data : [];
+                $data = localized_notification_payload($data, $notification->type);
 
                 return [
                     'id' => (string) $notification->id,
-                    'title' => (string) ($data['title'] ?? class_basename($notification->type)),
+                    'title' => (string) ($data['title'] ?? __(\Illuminate\Support\Str::headline(class_basename($notification->type)))),
                     'message' => (string) ($data['message'] ?? ''),
                     'is_read' => $notification->read_at !== null,
                     'created_at_human' => (string) optional($notification->created_at)->diffForHumans(),
@@ -327,13 +329,54 @@ class NotificationController extends Controller
 
     private function resolveNotificationRouteUrl(array $payload, string $locale): ?string
     {
-        $routeName = trim((string) ($payload['route'] ?? ''));
-        if ($routeName === '' || !Route::has($routeName)) {
-            return null;
-        }
-
+        $routeValue = trim((string) ($payload['route'] ?? ''));
         $routeParams = (array) ($payload['route_params'] ?? []);
 
-        return route($routeName, array_merge($routeParams, ['locale' => $locale]));
+        if ($routeValue !== '' && Route::has($routeValue)) {
+            return route($routeValue, array_merge($routeParams, ['locale' => $locale]));
+        }
+
+        $urlValue = trim((string) ($payload['url'] ?? ''));
+        if ($urlValue !== '') {
+            if (str_starts_with($urlValue, 'http://') || str_starts_with($urlValue, 'https://')) {
+                return $urlValue;
+            }
+
+            return url($urlValue);
+        }
+
+        // Legacy payloads stored route as "/order/{id}" instead of a route name.
+        if ($routeValue !== '' && str_starts_with($routeValue, '/')) {
+            $legacyOrderId = $this->extractLegacyOrderId($routeValue, $payload);
+            if ($legacyOrderId > 0 && Route::has('admin.orders.show')) {
+                return route('admin.orders.show', [
+                    'locale' => $locale,
+                    'order' => $legacyOrderId,
+                ]);
+            }
+
+            return url($routeValue);
+        }
+
+        if (Route::has('admin.orders.show') && isset($payload['order_id'])) {
+            $orderId = (int) $payload['order_id'];
+            if ($orderId > 0) {
+                return route('admin.orders.show', [
+                    'locale' => $locale,
+                    'order' => $orderId,
+                ]);
+            }
+        }
+
+        return null;
+    }
+
+    private function extractLegacyOrderId(string $routeValue, array $payload): int
+    {
+        if (preg_match('#^/order/(\d+)$#', $routeValue, $matches) === 1) {
+            return (int) ($matches[1] ?? 0);
+        }
+
+        return isset($payload['order_id']) ? (int) $payload['order_id'] : 0;
     }
 }

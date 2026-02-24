@@ -45,9 +45,11 @@ class CustomerProfileUpdatedNotification extends Notification implements ShouldQ
     private function payload(): array
     {
         return [
-            'type' => 'admin_message',
-            'title' => 'Customer profile updated',
-            'message' => "Customer {$this->customerName} updated account profile details.",
+            'type' => 'customer_profile_updated',
+            'title' => __('Customer profile updated'),
+            'message' => __('Customer :name updated account profile details.', [
+                'name' => $this->customerName,
+            ]),
             'sender_name' => $this->customerName,
             'sender_id' => $this->customerId,
             'old_profile' => $this->oldProfile,
