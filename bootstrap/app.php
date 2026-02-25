@@ -16,6 +16,11 @@ use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 
+$helpersPath = __DIR__.'/../app/Support/helpers.php';
+if (is_file($helpersPath)) {
+    require_once $helpersPath;
+}
+
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',

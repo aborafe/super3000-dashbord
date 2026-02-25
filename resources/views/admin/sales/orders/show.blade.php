@@ -3,8 +3,11 @@
 @section('title', __('Order Details'))
 
 @section('content')
+    @php
+        /** @var \App\Models\Order $order */
+        $normalizedStatus = $order->normalized_status;
+    @endphp
     <div class="container-xxl flex-grow-1 container-p-y">
-        @php $normalizedStatus = $order->normalized_status; @endphp
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
             <div>
                 <h4 class="fw-bold py-3 mb-0">{{ __('Order') }} {{ $order->order_no }}</h4>
@@ -85,6 +88,7 @@
                                 </thead>
                                 <tbody>
                                     @forelse($order->items as $item)
+                                        @php /** @var \App\Models\OrderItem $item */ @endphp
                                         <tr>
                                             <td>{{ $item->product?->name }}</td>
                                             <td>{{ $item->qty }}</td>

@@ -74,7 +74,7 @@ class UserController extends Controller
             ->map(fn ($permission): string => (string) $permission)
             ->values()
             ->all();
-        $directPermissionNames = $user->permissions
+        $directPermissionNames = $user->getDirectPermissions()
             ->pluck('name')
             ->map(fn ($permission): string => (string) $permission)
             ->values()
@@ -156,8 +156,8 @@ class UserController extends Controller
         $roles = Role::query()->orderBy('name')->get(['id', 'name']);
         $permissions = Permission::query()->orderBy('name')->get(['id', 'name']);
         $permissionGroups = $this->groupPermissions($permissions);
-        $currentRoles = $user->roles->pluck('name')->map(fn ($role) => (string) $role)->all();
-        $directPermissionNames = $user->permissions->pluck('name')->map(fn ($permission) => (string) $permission)->all();
+        $currentRoles = $user->getRoleNames()->map(fn ($role) => (string) $role)->values()->all();
+        $directPermissionNames = $user->getDirectPermissions()->pluck('name')->map(fn ($permission) => (string) $permission)->all();
         $deniedPermissionNames = $user->deniedPermissions->pluck('name')->map(fn ($permission) => (string) $permission)->all();
         $rolePermissionNames = $user->getPermissionsViaRoles()->pluck('name')->map(fn ($permission) => (string) $permission)->all();
         $effectivePermissionNames = collect($user->getAllPermissions()->pluck('name'))

@@ -4,10 +4,14 @@
 
 @section('content')
     @php $locale = app()->getLocale(); @endphp
+    @php
+        /** @var \Illuminate\Support\ViewErrorBag $viewErrors */
+        $viewErrors = $errors instanceof \Illuminate\Support\ViewErrorBag ? $errors : new \Illuminate\Support\ViewErrorBag();
+    @endphp
     @php $primaryRole = $user->roles->first()?->name ?? __('Staff'); @endphp
     @php $avatarInitial = $user->name ? (function_exists('mb_substr') ? mb_substr($user->name, 0, 1) : substr($user->name, 0, 1)) : '?'; @endphp
     @php $lastActivity = $activityLogs->first()?->created_at?->diffForHumans() ?? __('No activity yet'); @endphp
-    @php $securityTabActive = $errors->has('password') || session('active_tab') === 'security'; @endphp
+    @php $securityTabActive = $viewErrors->has('password') || session('active_tab') === 'security'; @endphp
 
     <div class="container-xxl flex-grow-1 container-p-y">
         <div class="row">

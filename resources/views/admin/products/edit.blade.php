@@ -3,6 +3,10 @@
 @section('title', __('Edit Product'))
 
 @section('content')
+    @php
+        /** @var \Illuminate\Support\ViewErrorBag $viewErrors */
+        $viewErrors = $errors instanceof \Illuminate\Support\ViewErrorBag ? $errors : new \Illuminate\Support\ViewErrorBag();
+    @endphp
     <div class="container-xxl flex-grow-1 container-p-y">
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
             <div>
@@ -128,9 +132,9 @@
                         <label class="form-label">{{ __('Additional Images') }}</label>
                         <input type="file" name="images[]" multiple
                             class="form-control @error('images') is-invalid @enderror">
-                        @if ($errors->has('images.*'))
+                        @if ($viewErrors->has('images.*'))
                             <div class="invalid-feedback d-block">
-                                {{ $errors->first('images.*') }}
+                                {{ $viewErrors->first('images.*') }}
                             </div>
                         @endif
 

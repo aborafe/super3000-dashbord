@@ -20,6 +20,10 @@
 @php $realtimeKey = (string) ($broadcastConnection['key'] ?? ''); @endphp
 @php $realtimeChannel = $authUser ? 'user.' . $authUser->getKey() : ''; @endphp
 @php $realtimeAuthEndpoint = url('/broadcasting/auth'); @endphp
+@php
+    /** @var \Illuminate\Support\ViewErrorBag $viewErrors */
+    $viewErrors = $errors instanceof \Illuminate\Support\ViewErrorBag ? $errors : new \Illuminate\Support\ViewErrorBag();
+@endphp
 <!doctype html>
 
 <html lang="{{ $locale }}" dir="{{ $dir }}" class="layout-menu-fixed layout-compact {{ $themeClass }}"
@@ -653,11 +657,11 @@
                     @endif
 
                     {{-- show validation errors or general error message in a visible alert --}}
-                    @if ($errors->any())
+                    @if ($viewErrors->any())
                         <div class="container-xxl pt-3">
                             <div class="alert alert-danger">
                                 <ul class="mb-0">
-                                    @foreach ($errors->all() as $error)
+                                    @foreach ($viewErrors->all() as $error)
                                         <li>{{ $error }}</li>
                                     @endforeach
                                 </ul>

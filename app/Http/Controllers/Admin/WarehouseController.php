@@ -58,7 +58,9 @@ class WarehouseController extends Controller
 
         $warehouse = Warehouse::query()->create($data);
 
-        ActivityLogger::log('created', 'warehouse', $warehouse->id, ['name' => $warehouse->name]);
+        ActivityLogger::log('created', 'warehouse', $warehouse->id, [
+            'name' => (string) ($warehouse->getAttribute('name') ?? ''),
+        ]);
 
         return redirect()
             ->route('admin.operations.warehouses.index')
@@ -77,7 +79,9 @@ class WarehouseController extends Controller
 
         $warehouse->update($data);
 
-        ActivityLogger::log('updated', 'warehouse', $warehouse->id, ['name' => $warehouse->name]);
+        ActivityLogger::log('updated', 'warehouse', $warehouse->id, [
+            'name' => (string) ($warehouse->getAttribute('name') ?? ''),
+        ]);
 
         return redirect()
             ->route('admin.operations.warehouses.index')

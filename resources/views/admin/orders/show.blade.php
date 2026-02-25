@@ -4,6 +4,13 @@
 
 @section('content')
     @php
+        /** @var \App\Models\Order $order */
+        /** @var \Illuminate\Support\Collection<int, \App\Models\Product> $products */
+        /** @var array<int, array{title:string,subtitle:string,time:\Illuminate\Support\Carbon|null,type:string}> $timeline */
+        /** @var array<int, string> $availableStatusTransitions */
+        /** @var int $customerOrdersCount */
+        /** @var array{name:string,email:string,phone:string,city:string,whatsapp:string,address:string,notes:string} $customerDetails */
+        /** @var array<string, string> $shippingAddress */
         $normalizedStatus = $order->normalized_status;
         $canEditInvoiceItems = in_array($normalizedStatus, ['pending', 'approved'], true);
         $statusBadge = match ($normalizedStatus) {
@@ -17,7 +24,7 @@
         $formItems = old('items');
         if (!is_array($formItems) || $formItems === []) {
             $formItems = $order->items
-                ->map(function ($item) {
+                ->map(function (\App\Models\OrderItem $item): array {
                     return [
                         'id' => $item->id,
                         'product_id' => $item->product_id,
@@ -379,13 +386,22 @@
                             </div>
                         </form>
 
-                        @php $allocationHistory = $order->paymentAllocations->sortByDesc(fn ($allocation) => $allocation->allocated_at ?? $allocation->created_at); @endphp
+                        @php
+                            /** @var \Illuminate\Support\Collection<int, \App\Models\PaymentAllocation> $allocationHistory */
+                            $allocationHistory = $order->paymentAllocations->sortByDesc(
+                                fn (\App\Models\PaymentAllocation $allocation) => $allocation->allocated_at ?? $allocation->created_at
+                            );
+                        @endphp
                         @if ($allocationHistory->count() > 0)
                             <hr>
                             <h6 class="mb-2">{{ __('Payments History') }}</h6>
                             <ul class="list-unstyled mb-0">
                                 @foreach ($allocationHistory as $allocation)
-                                    @php $payment = $allocation->payment; @endphp
+                                    @php
+                                        /** @var \App\Models\PaymentAllocation $allocation */
+                                        /** @var \App\Models\Payment|null $payment */
+                                        $payment = $allocation->payment;
+                                    @endphp
                                     <li class="d-flex justify-content-between align-items-center mb-2">
                                         <div>
                                             <div class="fw-medium">

@@ -143,18 +143,21 @@ class ReportController extends Controller
             $paymentsLog->getCollection()
                 ->map(function (Payment $payment): array {
                     $allocated = round((float) ($payment->allocated_amount ?? 0), 2);
-                    $amount = (float) $payment->amount;
+                    $amount = (float) $payment->getAttribute('amount');
+                    $source = (string) ($payment->getAttribute('source') ?? '');
+                    $method = (string) ($payment->getAttribute('method') ?? '');
+                    $createdAt = $payment->getAttribute('created_at');
 
                     return [
                         'id' => $payment->id,
                         'customer_name' => $payment->customer?->name ?? '-',
                         'order_no' => $payment->order?->order_no,
-                        'source' => $payment->source,
-                        'method' => $payment->method,
+                        'source' => $source,
+                        'method' => $method,
                         'amount' => $amount,
                         'allocated' => $allocated,
                         'unallocated' => max(0, round($amount - $allocated, 2)),
-                        'paid_at' => $payment->paid_at ?? $payment->created_at,
+                        'paid_at' => $payment->paid_at ?? $createdAt,
                     ];
                 })
                 ->values()

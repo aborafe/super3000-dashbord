@@ -92,7 +92,7 @@ class OrderController extends Controller
         $paidPayment = $order->paymentAllocations
             ->map(fn ($allocation) => $allocation->payment)
             ->filter(fn ($payment) => $payment && $payment->status === 'paid')
-            ->sortByDesc(fn ($payment) => $payment->paid_at ?? $payment->created_at)
+            ->sortByDesc(fn ($payment) => $payment->paid_at ?? $payment->getAttribute('created_at'))
             ->first()
             ?? $order->payments
                 ->where('status', 'paid')
@@ -109,11 +109,14 @@ class OrderController extends Controller
         ];
 
         if ($paidPayment) {
+            $paidMethod = (string) ($paidPayment->getAttribute('method') ?? '');
+            $paidAmount = (float) ($paidPayment->getAttribute('amount') ?? 0);
+
             $timeline[] = [
                 'title' => __('Payment received'),
                 'subtitle' => __('Payment :method for :amount', [
-                    'method' => ucfirst($paidPayment->method),
-                    'amount' => money($paidPayment->amount),
+                    'method' => ucfirst($paidMethod),
+                    'amount' => money($paidAmount),
                 ]),
                 'time' => $paidPayment->paid_at ?? $timelineTime,
                 'type' => 'success',
@@ -585,7 +588,7 @@ class OrderController extends Controller
         ActivityLogger::log('created', 'payment', $payment->id, [
             'source' => 'order_edit',
             'order_id' => $order->id,
-            'amount' => (float) $payment->amount,
+            'amount' => (float) ($payment->getAttribute('amount') ?? 0),
         ]);
 
         return redirect()

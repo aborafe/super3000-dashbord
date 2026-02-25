@@ -48,7 +48,7 @@ class CustomerLedgerService
             ->get();
 
         $invoiceTotal = (float) $orders->sum(fn (Order $order): float => (float) $order->total);
-        $paidTotal = (float) $payments->sum(fn (Payment $payment): float => (float) $payment->amount);
+        $paidTotal = (float) $payments->sum(fn (Payment $payment): float => (float) ($payment->getAttribute('amount') ?? 0));
         $balance = round($paidTotal - $invoiceTotal, 2);
 
         $orderRows = $orders->map(function (Order $order): array {
@@ -67,20 +67,26 @@ class CustomerLedgerService
         })->values()->all();
 
         $paymentRows = $payments->map(function (Payment $payment): array {
+            $amount = (float) ($payment->getAttribute('amount') ?? 0);
+            $method = (string) ($payment->getAttribute('method') ?? '');
+            $status = (string) ($payment->getAttribute('status') ?? '');
+            $source = (string) ($payment->getAttribute('source') ?? '');
+            $notes = $payment->getAttribute('notes');
+            $createdAt = $payment->getAttribute('created_at');
             $allocated = round((float) ($payment->allocated_amount ?? 0), 2);
-            $unallocated = max(0, round((float) $payment->amount - $allocated, 2));
+            $unallocated = max(0, round($amount - $allocated, 2));
 
             return [
                 'id' => $payment->id,
                 'order_no' => $payment->order?->order_no,
-                'method' => $payment->method,
-                'status' => $payment->status,
-                'source' => $payment->source,
-                'amount' => (float) $payment->amount,
+                'method' => $method,
+                'status' => $status,
+                'source' => $source,
+                'amount' => $amount,
                 'allocated' => $allocated,
                 'unallocated' => $unallocated,
-                'paid_at' => $payment->paid_at ?? $payment->created_at,
-                'notes' => $payment->notes,
+                'paid_at' => $payment->paid_at ?? $createdAt,
+                'notes' => is_string($notes) ? $notes : null,
             ];
         })->values()->all();
 
@@ -309,7 +315,7 @@ class CustomerLedgerService
     {
         $allocated = (float) $payment->allocations()->sum('amount');
 
-        return max(0, round((float) $payment->amount - $allocated, 2));
+        return max(0, round((float) ($payment->getAttribute('amount') ?? 0) - $allocated, 2));
     }
 
     private function orderOutstandingAmount(int $orderId): float
@@ -337,7 +343,7 @@ class CustomerLedgerService
 
     private function dispatchOrderPaymentNotifications(Payment $payment): void
     {
-        if ((string) $payment->status !== 'paid') {
+        if ((string) ($payment->getAttribute('status') ?? '') !== 'paid') {
             return;
         }
 

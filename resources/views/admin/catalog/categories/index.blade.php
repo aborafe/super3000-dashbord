@@ -3,6 +3,9 @@
 @section('title', __('Categories'))
 
 @section('content')
+    @php
+        /** @var \Illuminate\Contracts\Pagination\Paginator|\Illuminate\Pagination\LengthAwarePaginator<\App\Models\Category>|array<int, \App\Models\Category> $categories */
+    @endphp
     <div class="container-xxl flex-grow-1 container-p-y">
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
             <div>
@@ -92,9 +95,11 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="mt-3">
-                    {{ $categories->links('pagination::bootstrap-5') }}
-                </div>
+                @if ($categories instanceof \Illuminate\Contracts\Pagination\Paginator)
+                    <div class="mt-3">
+                        {{ $categories->links('pagination::bootstrap-5') }}
+                    </div>
+                @endif
             </div>
         </div>
     </div>
