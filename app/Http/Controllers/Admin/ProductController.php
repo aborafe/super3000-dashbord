@@ -124,6 +124,9 @@ class ProductController extends Controller
     public function store(StoreProductRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $providedSku = isset($data['sku']) ? trim((string) $data['sku']) : '';
+        $data['sku'] = $providedSku !== '' ? $providedSku : $this->generateUniqueSku();
+
         $initialStock = (int) ($data['stock_qty'] ?? 0);
         $data['is_active'] = (bool) $data['is_active'];
         $data['stock_qty'] = 0;
@@ -393,5 +396,14 @@ class ProductController extends Controller
         }
 
         return 'admin.products.index';
+    }
+
+    private function generateUniqueSku(): string
+    {
+        do {
+            $sku = 'SKU-' . Str::upper(Str::random(8));
+        } while (Product::query()->where('sku', $sku)->exists());
+
+        return $sku;
     }
 }

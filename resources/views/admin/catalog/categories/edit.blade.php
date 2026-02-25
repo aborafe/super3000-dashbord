@@ -35,13 +35,28 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">{{ __('Cover Image') }}</label>
+                        @php
+                            $removeCoverOld = old('remove_cover', '0') === '1';
+                        @endphp
+                        <input type="hidden" name="remove_cover" id="removeCategoryCoverInput"
+                            value="{{ $removeCoverOld ? '1' : '0' }}">
                         @if ($category->cover_image)
-                            <div class="mb-1">
+                            <div class="mb-2" id="categoryCoverWrapper">
                                 <img src="{{ asset('storage/' . $category->cover_image) }}" alt="cover"
-                                    style="max-height:80px;" />
+                                    style="max-height:80px;" class="rounded border" />
+                                <div class="d-flex align-items-center gap-2 mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" id="removeCategoryCoverBtn">
+                                        {{ $removeCoverOld ? __('Undo remove') : __('Remove image') }}
+                                    </button>
+                                    <label for="categoryCoverImageInput" class="btn btn-sm btn-outline-primary mb-0">
+                                        {{ __('Change image') }}
+                                    </label>
+                                    <span class="badge bg-label-danger {{ $removeCoverOld ? '' : 'd-none' }}"
+                                        id="removeCategoryCoverBadge">{{ __('Will be removed on save') }}</span>
+                                </div>
                             </div>
                         @endif
-                        <input type="file" name="cover_image"
+                        <input type="file" name="cover_image" id="categoryCoverImageInput"
                             class="form-control @error('cover_image') is-invalid @enderror">
                         @error('cover_image')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -66,4 +81,27 @@
             </div>
         </div>
     </div>
+
+    @if ($category->cover_image)
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const removeButton = document.getElementById('removeCategoryCoverBtn');
+                const removeInput = document.getElementById('removeCategoryCoverInput');
+                const removeBadge = document.getElementById('removeCategoryCoverBadge');
+
+                if (!removeButton || !removeInput || !removeBadge) {
+                    return;
+                }
+
+                removeButton.addEventListener('click', function() {
+                    const isMarked = removeInput.value === '1';
+                    removeInput.value = isMarked ? '0' : '1';
+                    removeBadge.classList.toggle('d-none', removeInput.value !== '1');
+                    removeButton.textContent = removeInput.value === '1'
+                        ? @json(__('Undo remove'))
+                        : @json(__('Remove image'));
+                });
+            });
+        </script>
+    @endif
 @endsection

@@ -35,6 +35,7 @@
                         <label class="form-label">{{ __('SKU') }}</label>
                         <input type="text" name="sku" value="{{ old('sku') }}"
                             class="form-control @error('sku') is-invalid @enderror">
+                        <div class="form-text">{{ __('Leave SKU empty to generate automatically.') }}</div>
                         @error('sku')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror

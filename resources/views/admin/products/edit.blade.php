@@ -109,20 +109,34 @@
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
+                    @php
+                        $removeCoverOld = old('remove_cover', '0') === '1';
+                        $deletedImageIdsOld = collect(old('deleted_image_ids', []))
+                            ->map(fn ($id) => (int) $id)
+                            ->all();
+                    @endphp
                     <div class="col-md-6">
                         <label class="form-label">{{ __('Cover Image') }}</label>
+                        <input type="hidden" name="remove_cover" id="removeProductCoverInput"
+                            value="{{ $removeCoverOld ? '1' : '0' }}">
                         @if ($product->cover_image)
-                            <div class="mb-2">
+                            <div class="mb-2" id="productCoverWrapper">
                                 <img src="{{ asset('storage/' . $product->cover_image) }}" alt="cover"
-                                    style="max-height:100px;">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="remove_cover" value="1"
-                                        id="removeCover">
-                                    <label class="form-check-label" for="removeCover">{{ __('Remove cover') }}</label>
+                                    style="max-height:100px;" class="rounded border">
+                                <div class="d-flex align-items-center gap-2 mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                        id="removeProductCoverBtn">
+                                        {{ $removeCoverOld ? __('Undo remove') : __('Remove image') }}
+                                    </button>
+                                    <label for="coverImageInput" class="btn btn-sm btn-outline-primary mb-0">
+                                        {{ __('Change image') }}
+                                    </label>
+                                    <span class="badge bg-label-danger {{ $removeCoverOld ? '' : 'd-none' }}"
+                                        id="removeProductCoverBadge">{{ __('Will be removed on save') }}</span>
                                 </div>
                             </div>
                         @endif
-                        <input type="file" name="cover_image"
+                        <input type="file" name="cover_image" id="coverImageInput"
                             class="form-control @error('cover_image') is-invalid @enderror">
                         @error('cover_image')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -130,7 +144,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">{{ __('Additional Images') }}</label>
-                        <input type="file" name="images[]" multiple
+                        <input type="file" name="images[]" id="additionalImagesInput" multiple
                             class="form-control @error('images') is-invalid @enderror">
                         @if ($viewErrors->has('images.*'))
                             <div class="invalid-feedback d-block">
@@ -145,18 +159,32 @@
                             <label class="form-label">{{ __('Existing Images') }}</label>
                             <div class="row">
                                 @foreach ($product->images as $img)
+                                    @php
+                                        $isMarkedForDelete = in_array((int) $img->id, $deletedImageIdsOld, true);
+                                    @endphp
                                     <div class="col-auto mb-2" style="position:relative;">
-                                        <img src="{{ asset('storage/' . $img->image_path) }}" style="max-height:80px;" />
-                                        <input type="hidden" name="images_orders[][id]" value="{{ $img->id }}">
-                                        <input type="number" name="images_orders[][sort_order]"
+                                        <img src="{{ asset('storage/' . $img->image_path) }}"
+                                            style="max-height:80px;" class="rounded border" />
+                                        <input type="hidden" name="images_orders[{{ $loop->index }}][id]"
+                                            value="{{ $img->id }}">
+                                        <input type="number" name="images_orders[{{ $loop->index }}][sort_order]"
                                             value="{{ old('images_orders.' . $loop->index . '.sort_order', $img->sort_order) }}"
                                             class="form-control form-control-sm mt-1" style="width:60px;"
                                             placeholder="#">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="deleted_image_ids[]"
-                                                value="{{ $img->id }}" id="del-img-{{ $img->id }}">
-                                            <label class="form-check-label"
-                                                for="del-img-{{ $img->id }}">{{ __('Delete') }}</label>
+                                        <div class="d-flex align-items-center gap-2 mt-2">
+                                            <input class="d-none" type="checkbox" name="deleted_image_ids[]"
+                                                value="{{ $img->id }}" id="del-img-{{ $img->id }}"
+                                                @checked($isMarkedForDelete)>
+                                            <button type="button"
+                                                class="btn btn-sm {{ $isMarkedForDelete ? 'btn-danger' : 'btn-outline-danger' }} js-toggle-image-delete"
+                                                data-target="del-img-{{ $img->id }}"
+                                                data-badge="del-img-badge-{{ $img->id }}">
+                                                {{ $isMarkedForDelete ? __('Undo remove') : __('Remove image') }}
+                                            </button>
+                                            <span id="del-img-badge-{{ $img->id }}"
+                                                class="badge bg-label-danger {{ $isMarkedForDelete ? '' : 'd-none' }}">
+                                                {{ __('Will be removed on save') }}
+                                            </span>
                                         </div>
                                     </div>
                                 @endforeach
@@ -172,4 +200,57 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const coverRemoveButton = document.getElementById('removeProductCoverBtn');
+            const coverRemoveInput = document.getElementById('removeProductCoverInput');
+            const coverRemoveBadge = document.getElementById('removeProductCoverBadge');
+
+            if (coverRemoveButton && coverRemoveInput && coverRemoveBadge) {
+                const syncCoverButton = function() {
+                    const isMarked = coverRemoveInput.value === '1';
+                    coverRemoveButton.classList.toggle('btn-danger', isMarked);
+                    coverRemoveButton.classList.toggle('btn-outline-danger', !isMarked);
+                    coverRemoveBadge.classList.toggle('d-none', !isMarked);
+                    coverRemoveButton.textContent = isMarked ?
+                        @json(__('Undo remove')) :
+                        @json(__('Remove image'));
+                };
+
+                coverRemoveButton.addEventListener('click', function() {
+                    coverRemoveInput.value = coverRemoveInput.value === '1' ? '0' : '1';
+                    syncCoverButton();
+                });
+
+                syncCoverButton();
+            }
+
+            document.querySelectorAll('.js-toggle-image-delete').forEach(function(button) {
+                const checkboxId = button.getAttribute('data-target');
+                const badgeId = button.getAttribute('data-badge');
+                const checkbox = checkboxId ? document.getElementById(checkboxId) : null;
+                const badge = badgeId ? document.getElementById(badgeId) : null;
+
+                if (!checkbox || !badge) {
+                    return;
+                }
+
+                const syncImageButton = function() {
+                    const isMarked = checkbox.checked;
+                    button.classList.toggle('btn-danger', isMarked);
+                    button.classList.toggle('btn-outline-danger', !isMarked);
+                    badge.classList.toggle('d-none', !isMarked);
+                    button.textContent = isMarked ? @json(__('Undo remove')) : @json(__('Remove image'));
+                };
+
+                button.addEventListener('click', function() {
+                    checkbox.checked = !checkbox.checked;
+                    syncImageButton();
+                });
+
+                syncImageButton();
+            });
+        });
+    </script>
 @endsection
