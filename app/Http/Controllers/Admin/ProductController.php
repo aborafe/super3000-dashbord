@@ -400,8 +400,16 @@ class ProductController extends Controller
 
     private function generateUniqueSku(): string
     {
+        $maxSuffix = Product::query()
+            ->whereRaw("sku REGEXP '^PRD-[0-9]+$'")
+            ->selectRaw("MAX(CAST(SUBSTRING(sku, 5) AS UNSIGNED)) as max_suffix")
+            ->value('max_suffix');
+
+        $next = ((int) $maxSuffix) + 1;
+
         do {
-            $sku = 'SKU-' . Str::upper(Str::random(8));
+            $sku = 'PRD-' . str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+            $next++;
         } while (Product::query()->where('sku', $sku)->exists());
 
         return $sku;
