@@ -38,8 +38,10 @@
                             <div class="d-flex justify-content-between align-items-center mt-3">
                                 <small class="text-muted">{{ __('Select recipients on the right') }}</small>
                                 <div>
-                                    <button type="button" id="select-none" class="btn btn-sm btn-outline-secondary me-2">{{ __('Clear') }}</button>
-                                    <button type="button" id="select-all" class="btn btn-sm btn-outline-primary">{{ __('Select All Visible') }}</button>
+                                    <button type="button" id="select-none"
+                                        class="btn btn-sm btn-outline-secondary me-2">{{ __('Clear') }}</button>
+                                    <button type="button" id="select-all"
+                                        class="btn btn-sm btn-outline-primary">{{ __('Select All Visible') }}</button>
                                 </div>
                             </div>
 
@@ -53,13 +55,17 @@
                                     <strong>{{ __('Users') }}</strong>
                                     <small class="text-muted">({{ $users->count() }})</small>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mb-2 recipient-filter" data-target="users" placeholder="{{ __('Search users...') }}">
+                                <input type="text" class="form-control form-control-sm mb-2 recipient-filter"
+                                    data-target="users" placeholder="{{ __('Search users...') }}">
                                 <div class="card border">
                                     <div class="card-body p-2">
-                                        <div class="list-group list-group-flush overflow-auto recipient-list" id="users-list" style="max-height:160px;">
+                                        <div class="list-group list-group-flush overflow-auto recipient-list"
+                                            id="users-list" style="max-height:160px;">
                                             @foreach ($users as $user)
                                                 <label class="list-group-item d-flex align-items-center mb-1">
-                                                    <input class="form-check-input me-2 recipient-checkbox" type="checkbox" name="recipients[]" value="user:{{ $user->id }}" @checked(in_array('user:'.$user->id, $selectedRecipients, true))>
+                                                    <input class="form-check-input me-2 recipient-checkbox" type="checkbox"
+                                                        name="recipients[]" value="user:{{ $user->id }}"
+                                                        @checked(in_array('user:' . $user->id, $selectedRecipients, true))>
                                                     <div>
                                                         <div class="fw-semibold">{{ $user->name }}</div>
                                                         <small class="text-muted">{{ $user->email }}</small>
@@ -67,7 +73,8 @@
                                                 </label>
                                             @endforeach
                                             <label class="list-group-item d-flex align-items-center mb-0">
-                                                <input class="form-check-input me-2 recipient-checkbox" type="checkbox" name="recipients[]" value="all:users" @checked(in_array('all:users', $selectedRecipients, true))>
+                                                <input class="form-check-input me-2 recipient-checkbox" type="checkbox"
+                                                    name="recipients[]" value="all:users" @checked(in_array('all:users', $selectedRecipients, true))>
                                                 <div class="fw-semibold">{{ __('All users') }}</div>
                                             </label>
                                         </div>
@@ -80,13 +87,17 @@
                                     <strong>{{ __('Roles') }}</strong>
                                     <small class="text-muted">({{ $roles->count() }})</small>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mb-2 recipient-filter" data-target="roles" placeholder="{{ __('Search roles...') }}">
+                                <input type="text" class="form-control form-control-sm mb-2 recipient-filter"
+                                    data-target="roles" placeholder="{{ __('Search roles...') }}">
                                 <div class="card border">
                                     <div class="card-body p-2">
-                                        <div class="list-group list-group-flush overflow-auto recipient-list" id="roles-list" style="max-height:120px;">
+                                        <div class="list-group list-group-flush overflow-auto recipient-list"
+                                            id="roles-list" style="max-height:120px;">
                                             @foreach ($roles as $role)
                                                 <label class="list-group-item d-flex align-items-center mb-1">
-                                                    <input class="form-check-input me-2 recipient-checkbox" type="checkbox" name="recipients[]" value="role:{{ $role->name }}" @checked(in_array('role:'.$role->name, $selectedRecipients, true))>
+                                                    <input class="form-check-input me-2 recipient-checkbox" type="checkbox"
+                                                        name="recipients[]" value="role:{{ $role->name }}"
+                                                        @checked(in_array('role:' . $role->name, $selectedRecipients, true))>
                                                     <div class="fw-semibold">{{ $role->name }}</div>
                                                 </label>
                                             @endforeach
@@ -100,31 +111,41 @@
                                     <strong>{{ __('Customers') }}</strong>
                                     <small class="text-muted">({{ $customers->count() }})</small>
                                 </div>
-                                <input type="text" class="form-control form-control-sm mb-2 recipient-filter" data-target="customers" placeholder="{{ __('Search customers...') }}">
+                                <input type="text" class="form-control form-control-sm mb-2 recipient-filter"
+                                    data-target="customers" placeholder="{{ __('Search customers...') }}">
                                 <div class="card border">
                                     <div class="card-body p-2">
-                                        <div class="list-group list-group-flush overflow-auto recipient-list" id="customers-list" style="max-height:200px;">
+                                        <div class="list-group list-group-flush overflow-auto recipient-list"
+                                            id="customers-list" style="max-height:200px;">
                                             @foreach ($customers as $customer)
                                                 <label class="list-group-item d-flex align-items-center mb-1">
-                                                    <input class="form-check-input me-2 recipient-checkbox"
-                                                        type="checkbox"
-                                                        name="recipients[]"
-                                                        value="customer:{{ $customer->id }}"
-                                                        @checked(in_array('customer:'.$customer->id, $selectedRecipients, true))
-                                                        @disabled(!$customer->is_active)
+                                                    <input class="form-check-input me-2 recipient-checkbox" type="checkbox"
+                                                        name="recipients[]" value="customer:{{ $customer->id }}"
+                                                        @checked(in_array('customer:' . $customer->id, $selectedRecipients, true)) @disabled(!$customer->is_active)
                                                         title="{{ !$customer->is_active ? __('Inactive customers cannot receive notifications.') : '' }}">
                                                     <div>
-                                                        <div class="fw-semibold">{{ $customer->name }} @if(!$customer->is_active) <span class="text-danger">({{ __('Inactive') }})</span> @endif</div>
-                                                        <small class="text-muted">@if(!empty($customer->email)){{ $customer->email }}@elseif(!empty($customer->phone)){{ $customer->phone }}@endif</small>
+                                                        <div class="fw-semibold">{{ $customer->name }} @if (!$customer->is_active)
+                                                                <span class="text-danger">({{ __('Inactive') }})</span>
+                                                            @endif
+                                                        </div>
+                                                        <small class="text-muted">
+                                                            @if (!empty($customer->email))
+                                                                {{ $customer->email }}
+                                                            @elseif(!empty($customer->phone))
+                                                                {{ $customer->phone }}
+                                                            @endif
+                                                        </small>
                                                     </div>
                                                 </label>
                                             @endforeach
                                             <label class="list-group-item d-flex align-items-center mb-0">
-                                                <input class="form-check-input me-2 recipient-checkbox" type="checkbox" name="recipients[]" value="all:customers" @checked(in_array('all:customers', $selectedRecipients, true))>
+                                                <input class="form-check-input me-2 recipient-checkbox" type="checkbox"
+                                                    name="recipients[]" value="all:customers" @checked(in_array('all:customers', $selectedRecipients, true))>
                                                 <div class="fw-semibold">{{ __('All active customers') }}</div>
                                             </label>
                                             <label class="list-group-item d-flex align-items-center mb-0">
-                                                <input class="form-check-input me-2 recipient-checkbox" type="checkbox" name="recipients[]" value="all:everyone" @checked(in_array('all:everyone', $selectedRecipients, true))>
+                                                <input class="form-check-input me-2 recipient-checkbox" type="checkbox"
+                                                    name="recipients[]" value="all:everyone" @checked(in_array('all:everyone', $selectedRecipients, true))>
                                                 <div class="fw-semibold">{{ __('All users and customers') }}</div>
                                             </label>
                                         </div>
@@ -146,11 +167,11 @@
 
 @section('page-scripts')
     <script>
-        (function () {
+        (function() {
             const filters = document.querySelectorAll('.recipient-filter');
             filters.forEach(input => {
                 const target = input.dataset.target;
-                input.addEventListener('input', function () {
+                input.addEventListener('input', function() {
                     const q = this.value.trim().toLowerCase();
                     const list = document.getElementById(target + '-list');
                     if (!list) return;
@@ -161,18 +182,19 @@
                 });
             });
 
-            document.getElementById('select-all')?.addEventListener('click', function () {
-                document.querySelectorAll('#users-list .list-group-item, #roles-list .list-group-item, #customers-list .list-group-item').forEach(item => {
+            document.getElementById('select-all')?.addEventListener('click', function() {
+                document.querySelectorAll(
+                    '#users-list .list-group-item, #roles-list .list-group-item, #customers-list .list-group-item'
+                    ).forEach(item => {
                     if (getComputedStyle(item).display === 'none') return;
                     const cb = item.querySelector('.recipient-checkbox');
                     if (cb) cb.checked = true;
                 });
             });
 
-            document.getElementById('select-none')?.addEventListener('click', function () {
+            document.getElementById('select-none')?.addEventListener('click', function() {
                 document.querySelectorAll('.recipient-checkbox').forEach(cb => cb.checked = false);
             });
         })();
     </script>
 @endsection
-
