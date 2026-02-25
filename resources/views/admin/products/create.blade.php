@@ -50,7 +50,7 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">{{ __('Stock Qty') }}</label>
-                        <input type="number" name="stock_qty" value="{{ old('stock_qty', 0) }}"
+                        <input type="number" name="stock_qty" value="{{ old('stock_qty') }}"
                             class="form-control @error('stock_qty') is-invalid @enderror">
                         @error('stock_qty')
                             <div class="invalid-feedback">{{ $message }}</div>
