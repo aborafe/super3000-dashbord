@@ -17,6 +17,7 @@ class UpdateCategoryRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'is_active' => ['required', 'boolean'],
             'cover_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'remove_cover' => ['boolean'],
         ];
     }
 }

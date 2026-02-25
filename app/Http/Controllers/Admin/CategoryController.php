@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Support\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -83,6 +84,8 @@ class CategoryController extends Controller
     public function update(UpdateCategoryRequest $request, Category $category): RedirectResponse
     {
         $data = $request->validated();
+        $removeCover = (bool) ($data['remove_cover'] ?? false);
+        unset($data['remove_cover']);
 
         if ($category->name !== $data['name']) {
             $data['slug'] = $this->uniqueSlug($data['name'], $category->id);
@@ -90,11 +93,20 @@ class CategoryController extends Controller
 
         $category->update($data);
 
+        if ($removeCover) {
+            $currentCoverImage = $category->getAttribute('cover_image');
+            if (is_string($currentCoverImage) && $currentCoverImage !== '') {
+                Storage::disk('public')->delete($currentCoverImage);
+            }
+            $category->cover_image = null;
+            $category->save();
+        }
+
         // handle cover image replacement
         if ($request->hasFile('cover_image')) {
             $currentCoverImage = $category->getAttribute('cover_image');
             if (is_string($currentCoverImage) && $currentCoverImage !== '') {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($currentCoverImage);
+                Storage::disk('public')->delete($currentCoverImage);
             }
             $category->cover_image = \App\Support\ImageUploader::storeCategoryImage($request->file('cover_image'));
             $category->save();
