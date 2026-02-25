@@ -40,7 +40,7 @@
                   <td>
                     <div class="d-flex align-items-center">
                       <div class="avatar me-2">
-                        <img src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/img/avatars/1.png" alt="Avatar" class="rounded-circle" />
+                        <img src="{{ asset('sneat-assets') }}/img/avatars/1.png" alt="Avatar" class="rounded-circle" />
                       </div>
                       <a href="{{ route('admin.users.show', $user) }}" class="text-body fw-medium">{{ $user->name }}</a>
                     </div>

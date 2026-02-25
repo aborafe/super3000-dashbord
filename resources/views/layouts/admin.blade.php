@@ -27,7 +27,7 @@
 <!doctype html>
 
 <html lang="{{ $locale }}" dir="{{ $dir }}" class="layout-menu-fixed layout-compact {{ $themeClass }}"
-    data-assets-path="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/"
+    data-assets-path="{{ asset('sneat-assets') }}/"
     data-i18n-path="{{ asset('i18n') }}" data-default-lang="ar" data-template="vertical-menu-template-free">
 
 <head>
@@ -70,7 +70,7 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon"
-        href="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/img/favicon/favicon.ico" />
+        href="{{ asset('sneat-assets') }}/img/favicon/favicon.ico" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -80,13 +80,13 @@
         rel="stylesheet" />
 
     <link rel="stylesheet"
-        href="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/vendor/fonts/iconify-icons.css" />
+        href="{{ asset('sneat-assets') }}/vendor/fonts/iconify-icons.css" />
 
     <!-- Core CSS -->
     <!-- build:css assets/vendor/css/theme.css  -->
 
-    <link rel="stylesheet" href="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/vendor/css/core.css" />
-    <link rel="stylesheet" href="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/css/demo.css" />
+    <link rel="stylesheet" href="{{ asset('sneat-assets') }}/vendor/css/core.css" />
+    <link rel="stylesheet" href="{{ asset('sneat-assets') }}/css/demo.css" />
     <link rel="stylesheet" href="{{ asset('theme.css') }}" />
     <link rel="stylesheet" href="{{ asset('loading-ui.css') }}" />
     <link rel="stylesheet" href="{{ asset('admin-overrides.css') }}" />
@@ -96,22 +96,22 @@
     <!-- Vendors CSS -->
 
     <link rel="stylesheet"
-        href="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
+        href="{{ asset('sneat-assets') }}/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
 
     <!-- endbuild -->
 
     <link rel="stylesheet"
-        href="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/vendor/libs/apex-charts/apex-charts.css" />
+        href="{{ asset('sneat-assets') }}/vendor/libs/apex-charts/apex-charts.css" />
 
     <!-- Page CSS -->
 
     <!-- Helpers -->
-    <script src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/vendor/js/helpers.js"></script>
+    <script src="{{ asset('sneat-assets') }}/vendor/js/helpers.js"></script>
     <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
 
     <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
 
-    <script src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/js/config.js"></script>
+    <script src="{{ asset('sneat-assets') }}/js/config.js"></script>
 </head>
 
 <body>
@@ -565,7 +565,7 @@
                                 <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);"
                                     data-bs-toggle="dropdown">
                                     <div class="avatar avatar-online">
-                                        <img src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/img/avatars/1.png"
+                                        <img src="{{ asset('sneat-assets') }}/img/avatars/1.png"
                                             alt class="w-px-40 h-auto rounded-circle" />
                                     </div>
                                 </a>
@@ -575,7 +575,7 @@
                                             <div class="d-flex">
                                                 <div class="flex-shrink-0 me-3">
                                                     <div class="avatar avatar-online">
-                                                        <img src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/img/avatars/1.png"
+                                                        <img src="{{ asset('sneat-assets') }}/img/avatars/1.png"
                                                             alt class="w-px-40 h-auto rounded-circle" />
                                                     </div>
                                                 </div>
@@ -709,19 +709,19 @@
 
     <!-- Core JS -->
 
-    <script src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/vendor/libs/jquery/jquery.js"></script>
+    <script src="{{ asset('sneat-assets') }}/vendor/libs/jquery/jquery.js"></script>
 
-    <script src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/vendor/libs/popper/popper.js"></script>
-    <script src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/vendor/js/bootstrap.js"></script>
+    <script src="{{ asset('sneat-assets') }}/vendor/libs/popper/popper.js"></script>
+    <script src="{{ asset('sneat-assets') }}/vendor/js/bootstrap.js"></script>
 
     <script
-        src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/vendor/libs/perfect-scrollbar/perfect-scrollbar.js">
+        src="{{ asset('sneat-assets') }}/vendor/libs/perfect-scrollbar/perfect-scrollbar.js">
     </script>
 
     <!-- endbuild -->
 
     <!-- Vendors JS -->
-    <script src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/vendor/libs/apex-charts/apexcharts.js">
+    <script src="{{ asset('sneat-assets') }}/vendor/libs/apex-charts/apexcharts.js">
     </script>
 
     @if ($realtimeEnabled)

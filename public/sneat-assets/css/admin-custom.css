@@ -1,0 +1,54 @@
+html.dark-style {
+  --bs-body-bg: #0f111a;
+  --bs-body-bg-rgb: 15, 17, 26;
+  --bs-body-color: #e5e7eb;
+  --bs-body-color-rgb: 229, 231, 235;
+  --bs-heading-color: #f3f4f6;
+  --bs-border-color: #2b3240;
+  --bs-card-bg: #171a26;
+  --bs-card-cap-bg: #171a26;
+  --bs-secondary-color: #9ca3af;
+  --bs-secondary-color-rgb: 156, 163, 175;
+}
+
+html.dark-style body,
+html.dark-style .layout-wrapper {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+}
+
+html.dark-style .bg-menu-theme,
+html.dark-style .bg-navbar-theme {
+  background-color: var(--bs-card-bg) !important;
+}
+
+html.dark-style .card,
+html.dark-style .dropdown-menu {
+  background-color: var(--bs-card-bg);
+  border-color: var(--bs-border-color);
+}
+
+html.dark-style .text-body-secondary,
+html.dark-style .text-muted {
+  color: var(--bs-secondary-color) !important;
+}
+
+html.dark-style .dropdown-item {
+  color: var(--bs-body-color);
+}
+
+html.dark-style .dropdown-item:hover,
+html.dark-style .dropdown-item:focus {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.app-logos a {
+  width: 80px;
+}
+
+.app-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+

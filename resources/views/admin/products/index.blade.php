@@ -196,7 +196,7 @@
                                 <td>
                                     <div class="d-flex justify-content-start align-items-center">
                                         <div class="avatar me-2">
-                                            <img src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/img/elements/1.png"
+                                            <img src="{{ asset('sneat-assets') }}/img/elements/1.png"
                                                 alt="{{ __('Product') }}" class="rounded" />
                                         </div>
                                         <div class="d-flex flex-column">

@@ -21,7 +21,7 @@
             <div class="col-sm-5 text-center text-sm-left">
               <div class="card-body pb-0 px-0 px-md-6">
                 <img
-                  src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/img/illustrations/man-with-laptop.png"
+                  src="{{ asset('sneat-assets') }}/img/illustrations/man-with-laptop.png"
                   height="175"
                   alt="View Badge User" />
               </div>
@@ -38,7 +38,7 @@
                 <div class="card-title d-flex align-items-start justify-content-between mb-4">
                   <div class="avatar flex-shrink-0">
                     <img
-                      src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/img/icons/unicons/chart-success.png"
+                      src="{{ asset('sneat-assets') }}/img/icons/unicons/chart-success.png"
                       alt="chart success"
                       class="rounded" />
                   </div>
@@ -72,7 +72,7 @@
                 <div class="card-title d-flex align-items-start justify-content-between mb-4">
                   <div class="avatar flex-shrink-0">
                     <img
-                      src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/img/icons/unicons/wallet-info.png"
+                      src="{{ asset('sneat-assets') }}/img/icons/unicons/wallet-info.png"
                       alt="wallet info"
                       class="rounded" />
                   </div>
@@ -222,7 +222,7 @@
               <div class="card-body">
                 <div class="card-title d-flex align-items-start justify-content-between mb-4">
                   <div class="avatar flex-shrink-0">
-                    <img src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/img/icons/unicons/paypal.png" alt="paypal" class="rounded" />
+                    <img src="{{ asset('sneat-assets') }}/img/icons/unicons/paypal.png" alt="paypal" class="rounded" />
                   </div>
                   <div class="dropdown">
                     <button
@@ -253,7 +253,7 @@
               <div class="card-body">
                 <div class="card-title d-flex align-items-start justify-content-between mb-4">
                   <div class="avatar flex-shrink-0">
-                    <img src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/img/icons/unicons/cc-primary.png" alt="Credit Card" class="rounded" />
+                    <img src="{{ asset('sneat-assets') }}/img/icons/unicons/cc-primary.png" alt="Credit Card" class="rounded" />
                   </div>
                   <div class="dropdown">
                     <button
@@ -509,7 +509,7 @@
               <div class="tab-pane fade show active" id="navs-tabs-line-card-income" role="tabpanel">
                 <div class="d-flex mb-6">
                   <div class="avatar flex-shrink-0 me-3">
-                    <img src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/img/icons/unicons/wallet.png" alt="User" />
+                    <img src="{{ asset('sneat-assets') }}/img/icons/unicons/wallet.png" alt="User" />
                   </div>
                   <div>
                     <p class="mb-0">{{ __('Total Balance') }}</p>
@@ -564,7 +564,7 @@
               @forelse($recentPayments as $payment)
                 <li class="d-flex align-items-center mb-6">
                   <div class="avatar flex-shrink-0 me-3">
-                    <img src="{{ asset('sneat-bootstrap-html-admin-template-free/assets') }}/img/icons/unicons/wallet.png" alt="User" class="rounded" />
+                    <img src="{{ asset('sneat-assets') }}/img/icons/unicons/wallet.png" alt="User" class="rounded" />
                   </div>
                   <div class="d-flex w-100 flex-wrap align-items-center justify-content-between gap-2">
                     <div class="me-2">
@@ -632,7 +632,7 @@
 <img
     src="{{ $product?->cover_image
             ? asset('storage/' . $product->cover_image)
-            : asset('sneat-bootstrap-html-admin-template-free/assets/img/elements/2.png')
+            : asset('sneat-assets/img/elements/2.png')
         }}"
     alt="Product"
     class="rounded"
