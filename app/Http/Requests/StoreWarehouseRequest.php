@@ -8,7 +8,7 @@ class StoreWarehouseRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('warehouses.create') ?? false;
+        return (bool) $this->user()?->can('warehouses.create');
     }
 
     public function rules(): array
@@ -16,6 +16,7 @@ class StoreWarehouseRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'location' => ['nullable', 'string', 'max:255'],
+            'is_active' => ['required', 'boolean'],
         ];
     }
 }

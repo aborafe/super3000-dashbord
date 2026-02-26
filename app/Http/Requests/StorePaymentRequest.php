@@ -8,14 +8,16 @@ class StorePaymentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('orders.update') ?? false;
+        return true;
     }
 
     public function rules(): array
     {
         return [
-            'amount' => ['required', 'numeric', 'min:0.01'],
-            'method' => ['nullable', 'string', 'max:50'],
+            'order_id' => ['required', 'exists:orders,id'],
+            'method' => ['required', 'in:cash,card,transfer'],
+            'amount' => ['required', 'numeric', 'min:0'],
+            'status' => ['required', 'in:paid,failed,pending'],
             'paid_at' => ['nullable', 'date'],
         ];
     }

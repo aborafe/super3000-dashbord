@@ -1,8 +1,0 @@
-/* Admin overrides (Vite) */
-
-/* Vite sanity check: remove after verification */
-.vite-admin-proof {
-  outline: 2px dashed #ef4444;
-  outline-offset: -2px;
-}
-

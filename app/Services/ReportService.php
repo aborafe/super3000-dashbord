@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Debt;
+use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ProductStock;
@@ -38,7 +38,7 @@ class ReportService
         $summary = [
             'orders_count' => $orders->count(),
             'revenue_total' => (float) $orders->sum('total'),
-            'profit_total' => (float) $orders->sum('profit'),
+            'profit_total' => 0.0,
             'avg_order_value' => $orders->count() > 0
                 ? (float) ($orders->sum('total') / $orders->count())
                 : 0.0,
@@ -156,18 +156,18 @@ class ReportService
     protected function buildFinancialDistribution(Collection $orders): array
     {
         $cash = (float) $orders
-            ->where('payment_status', Order::PAYMENT_PAID)
+            ->where('status', Order::STATUS_APPROVED)
             ->sum('total');
 
         $receivables = (float) $orders
-            ->whereIn('payment_status', [Order::PAYMENT_PARTIAL, Order::PAYMENT_UNPAID])
+            ->whereIn('status', [Order::STATUS_PENDING, Order::STATUS_SHIPPED])
             ->sum('total');
 
         $inventoryValue = (float) ProductStock::query()
             ->with('product')
             ->get()
             ->sum(function (ProductStock $stock): float {
-                return $stock->qty * (float) ($stock->product?->cost ?? 0);
+                return $stock->qty * (float) ($stock->product?->price ?? 0);
             });
 
         $total = $cash + $receivables + $inventoryValue;
@@ -200,12 +200,34 @@ class ReportService
      */
     protected function buildDebtsSnapshot(): array
     {
-        $debts = Debt::query()->get();
+        $ledgerRows = Customer::query()
+            ->select('id')
+            ->withSum([
+                'orders as invoice_total' => fn ($query) => $query->where('status', '!=', Order::STATUS_CANCELLED),
+            ], 'total')
+            ->withSum([
+                'payments as paid_total' => fn ($query) => $query->where('status', 'paid'),
+            ], 'amount')
+            ->get()
+            ->map(function (Customer $customer): float {
+                $invoiceTotal = (float) ($customer->invoice_total ?? 0);
+                $paidTotal = (float) ($customer->paid_total ?? 0);
+
+                return round($paidTotal - $invoiceTotal, 2);
+            });
+
+        $totalDebts = (float) $ledgerRows
+            ->filter(fn (float $balance): bool => $balance < 0)
+            ->sum(fn (float $balance): float => abs($balance));
+        $totalCredits = (float) $ledgerRows
+            ->filter(fn (float $balance): bool => $balance > 0)
+            ->sum();
 
         return [
-            'total_debts' => (float) $debts->sum('amount'),
-            'open_debts' => (float) $debts->where('status', 'open')->sum('amount'),
-            'count' => $debts->count(),
+            'total_debts' => round($totalDebts, 2),
+            'open_debts' => round($totalDebts, 2),
+            'total_credits' => round($totalCredits, 2),
+            'count' => $ledgerRows->count(),
         ];
     }
 }

@@ -17,8 +17,18 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolesAndPermissionsSeeder::class,
             AdminUserSeeder::class,
+        ]);
+
+        if (! app()->environment(['local', 'testing'])) {
+            $this->command?->info('Skipping demo/reference seeders outside local/testing environment.');
+
+            return;
+        }
+
+        $this->call([
             ReferenceDataSeeder::class,
             DemoOrdersSeeder::class,
+            ActivityLogSeeder::class,
         ]);
     }
 }

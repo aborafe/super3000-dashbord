@@ -1,0 +1,106 @@
+/* Theme overrides (Dark Mode palette only) */
+
+.dark-style {
+  --bs-body-bg: #2F3349;
+  --bs-body-color: #E6E6F1;
+  --bs-heading-color: #E6E6F1;
+  --bs-secondary-color: #B4B7C9;
+  --bs-tertiary-color: #8A8DA3;
+  --bs-border-color: #3F435C;
+  --bs-border-color-translucent: #40445A;
+  --bs-primary: #7367F0;
+  --bs-primary-rgb: 115, 103, 240;
+  --bs-success: #28C76F;
+  --bs-warning: #FF9F43;
+  --bs-danger: #EA5455;
+  --bs-info: #00CFE8;
+  --bs-link-color: #7367F0;
+  --bs-link-hover-color: #5E50EE;
+}
+
+.dark-style body {
+  background-color: #2F3349;
+  color: #E6E6F1;
+}
+
+.dark-style .bg-menu-theme,
+.dark-style .bg-navbar-theme,
+.dark-style .bg-footer-theme,
+.dark-style .card,
+.dark-style .dropdown-menu,
+.dark-style .list-group-item {
+  background-color: #2A2E42;
+}
+
+.dark-style .menu-link:hover,
+.dark-style .menu-item.active > .menu-link,
+.dark-style .menu-item.open > .menu-link,
+.dark-style .dropdown-item:hover,
+.dark-style .dropdown-item:focus {
+  background-color: #3A3F58;
+}
+
+.dark-style .menu-link,
+.dark-style .dropdown-item,
+.dark-style .nav-link {
+  color: #E6E6F1;
+}
+
+.dark-style .dropdown-menu,
+.dark-style .card,
+.dark-style .table,
+.dark-style .list-group-item {
+  border-color: #3F435C;
+}
+
+.dark-style .table,
+.dark-style .table th,
+.dark-style .table td {
+  color: #E6E6F1;
+  border-color: #3F435C;
+}
+
+.dark-style .text-body,
+.dark-style .text-heading {
+  color: #E6E6F1;
+}
+
+.dark-style .text-muted {
+  color: #8A8DA3 !important;
+}
+
+.dark-style .form-control,
+.dark-style .form-select,
+.dark-style .input-group-text {
+  background-color: #2A2E42;
+  color: #E6E6F1;
+  border-color: #3F435C;
+}
+
+.dark-style .form-control::placeholder {
+  color: #8A8DA3;
+}
+
+.dark-style .btn-primary {
+  background-color: #7367F0;
+  border-color: #7367F0;
+}
+
+.dark-style .btn-primary:hover {
+  background-color: #5E50EE;
+  border-color: #5E50EE;
+}
+
+.dark-style .btn-primary:focus {
+  box-shadow: 0 0 0 0.25rem rgba(115, 103, 240, 0.35);
+}
+
+.dark-style .form-check-input:checked {
+  background-color: #7367F0;
+  border-color: #7367F0;
+}
+
+.dark-style .form-check-input {
+  background-color: #4A4F6A;
+  border-color: #4A4F6A;
+}

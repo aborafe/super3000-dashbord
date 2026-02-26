@@ -1,201 +1,318 @@
 <?php
 
-use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\InventoryController;
+use App\Http\Controllers\Admin\InvoiceController;
+use App\Http\Controllers\Admin\MyProfileController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\OrderController;
-use App\Http\Controllers\Admin\PartnerController;
+use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\WarehouseController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\LocaleController;
-use App\Http\Controllers\ThemeController;
+use App\Http\Controllers\Auth\LoginController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->to('/' . config('app.locale', 'en'));
+    return redirect('/' . config('app.locale', 'ar'));
 });
 
-Route::prefix('{locale}')
-    ->where(['locale' => 'en|ar'])
-    ->middleware('setlocale')
-    ->group(function () {
-        Route::get('/', function () {
-            return redirect()->route('admin.dashboard');
-        })->name('home');
+Broadcast::routes([
+    'middleware' => ['web', 'auth'],
+]);
 
-        Route::middleware('guest')->group(function () {
-            Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-            Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
+Route::middleware('guest')->group(function () {
+    Route::get('login', [LoginController::class, 'create'])->name('login');
+    Route::post('login', [LoginController::class, 'store'])
+        ->middleware('throttle:web-login')
+        ->name('login.store');
+});
+
+Route::get('{locale}', function (string $locale) {
+    return redirect()->route('admin.dashboard', ['locale' => $locale]);
+})->whereIn('locale', ['ar', 'en']);
+
+Route::prefix('{locale}/admin')
+    ->whereIn('locale', ['ar', 'en'])
+    ->middleware(['setlocale', 'auth'])
+    ->name('admin.')
+    ->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index'])
+            ->middleware('can:dashboard.view')
+            ->name('dashboard');
+
+        Route::patch('products/{product}/toggle', [ProductController::class, 'toggle'])
+            ->middleware('can:products.update')
+            ->name('products.toggle');
+        Route::get('products/export/{format}', [ProductController::class, 'export'])
+            ->middleware('can:products.view')
+            ->name('products.export');
+        Route::resource('products', ProductController::class)
+            ->only(['index'])
+            ->middleware('can:products.view')
+            ->names('products');
+        Route::resource('products', ProductController::class)
+            ->only(['create', 'store'])
+            ->middleware('can:products.create')
+            ->names('products');
+        Route::resource('products', ProductController::class)
+            ->only(['edit', 'update'])
+            ->middleware('can:products.update')
+            ->names('products');
+        Route::resource('products', ProductController::class)
+            ->only(['destroy'])
+            ->middleware('can:products.delete')
+            ->names('products');
+
+        Route::get('orders', [OrderController::class, 'index'])
+            ->middleware('can:orders.view')
+            ->name('orders.index');
+        Route::get('orders/live', [OrderController::class, 'live'])
+            ->middleware('can:orders.view')
+            ->name('orders.live');
+        Route::get('orders/{order}', [OrderController::class, 'show'])
+            ->middleware('can:orders.view')
+            ->name('orders.show');
+        Route::patch('orders/{order}/details', [OrderController::class, 'updateDetails'])
+            ->middleware('can:orders.update')
+            ->name('orders.details');
+        Route::patch('orders/{order}/items', [OrderController::class, 'updateItems'])
+            ->middleware('can:orders.update')
+            ->name('orders.items');
+        Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])
+            ->middleware('can:orders.change_status')
+            ->name('orders.status');
+        Route::post('orders/{order}/payments', [OrderController::class, 'storePayment'])
+            ->middleware('can:payments.create')
+            ->name('orders.payments.store');
+
+        Route::get('invoices', [InvoiceController::class, 'index'])
+            ->middleware('can:orders.view')
+            ->name('invoices.index');
+        Route::get('invoices/export/{format}', [InvoiceController::class, 'export'])
+            ->middleware('can:orders.view')
+            ->name('invoices.export');
+        Route::get('invoices/{order}/print', [InvoiceController::class, 'print'])
+            ->middleware('can:orders.view')
+            ->name('invoices.print');
+
+        Route::get('users', [UserController::class, 'index'])
+            ->middleware('can:users.view')
+            ->name('users.index');
+        Route::get('users/{user}', [UserController::class, 'show'])
+            ->middleware('can:users.view')
+            ->name('users.show');
+
+        Route::get('myprofile', [MyProfileController::class, 'index'])->name('myprofile');
+
+        Route::get('notifications', [NotificationController::class, 'index'])
+            ->middleware('can:notifications.view')
+            ->name('notifications.index');
+        Route::get('notifications/live', [NotificationController::class, 'live'])
+            ->middleware('can:notifications.view')
+            ->name('notifications.live');
+        Route::get('notifications/compose', [NotificationController::class, 'compose'])
+            ->middleware('can:notifications.send')
+            ->name('notifications.compose');
+        Route::post('notifications/send', [NotificationController::class, 'send'])
+            ->middleware('can:notifications.send')
+            ->name('notifications.send');
+        Route::get('notifications/{notification}', [NotificationController::class, 'show'])
+            ->middleware('can:notifications.view')
+            ->whereUuid('notification')
+            ->name('notifications.show');
+        Route::patch('notifications/read-all', [NotificationController::class, 'markAllAsRead'])
+            ->middleware('can:notifications.view')
+            ->name('notifications.read-all');
+        Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead'])
+            ->middleware('can:notifications.view')
+            ->whereUuid('notification')
+            ->name('notifications.read');
+
+        Route::prefix('catalog')->name('catalog.')->group(function () {
+            Route::resource('categories', CategoryController::class)
+                ->only(['index'])
+                ->middleware('can:categories.view');
+            Route::resource('categories', CategoryController::class)
+                ->only(['create', 'store'])
+                ->middleware('can:categories.create');
+            Route::resource('categories', CategoryController::class)
+                ->only(['edit', 'update'])
+                ->middleware('can:categories.update');
+            Route::resource('categories', CategoryController::class)
+                ->only(['destroy'])
+                ->middleware('can:categories.delete');
+            Route::patch('categories/{category}/toggle', [CategoryController::class, 'toggle'])
+                ->middleware('can:categories.update')
+                ->name('categories.toggle');
+
+            Route::get('inventory', [InventoryController::class, 'index'])
+                ->middleware('can:inventory.view')
+                ->name('inventory.index');
+            Route::get('inventory/create', [InventoryController::class, 'create'])
+                ->middleware('can:inventory.create')
+                ->name('inventory.create');
+            Route::post('inventory', [InventoryController::class, 'store'])
+                ->middleware('can:inventory.create')
+                ->name('inventory.store');
+
+            Route::patch('products/{product}/toggle', [ProductController::class, 'toggle'])
+                ->middleware('can:products.update')
+                ->name('products.toggle');
+            Route::resource('products', ProductController::class)
+                ->only(['index'])
+                ->middleware('can:products.view')
+                ->names('products');
+            Route::resource('products', ProductController::class)
+                ->only(['create', 'store'])
+                ->middleware('can:products.create')
+                ->names('products');
+            Route::resource('products', ProductController::class)
+                ->only(['edit', 'update'])
+                ->middleware('can:products.update')
+                ->names('products');
+            Route::resource('products', ProductController::class)
+                ->only(['destroy'])
+                ->middleware('can:products.delete')
+                ->names('products');
         });
 
-        Route::post('/logout', [AuthController::class, 'logout'])
-            ->middleware('auth')
-            ->name('logout');
+        Route::prefix('sales')->name('sales.')->group(function () {
+            Route::resource('customers', CustomerController::class)
+                ->only(['index'])
+                ->middleware('can:customers.view');
+            Route::resource('customers', CustomerController::class)
+                ->only(['create', 'store'])
+                ->middleware('can:customers.create');
+            Route::resource('customers', CustomerController::class)
+                ->only(['edit', 'update'])
+                ->middleware('can:customers.update');
+            Route::resource('customers', CustomerController::class)
+                ->only(['destroy'])
+                ->middleware('can:customers.delete');
+            Route::post('customers/{customer}/payments', [CustomerController::class, 'storePayment'])
+                ->middleware('can:payments.create')
+                ->name('customers.payments.store');
+            Route::get('customers/{customer}/ledger', [CustomerController::class, 'ledger'])
+                ->middleware('can:customers.view')
+                ->name('customers.ledger');
 
-        Route::post('/admin/theme/toggle', [ThemeController::class, 'toggle'])
-            ->middleware('auth')
-            ->name('admin.theme.toggle');
+            Route::get('orders', [OrderController::class, 'index'])
+                ->middleware('can:orders.view')
+                ->name('orders.index');
+            Route::get('orders/{order}', [OrderController::class, 'show'])
+                ->middleware('can:orders.view')
+                ->name('orders.show');
+            Route::patch('orders/{order}/details', [OrderController::class, 'updateDetails'])
+                ->middleware('can:orders.update')
+                ->name('orders.details');
+            Route::patch('orders/{order}/items', [OrderController::class, 'updateItems'])
+                ->middleware('can:orders.update')
+                ->name('orders.items');
+            Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])
+                ->middleware('can:orders.change_status')
+                ->name('orders.status');
+            Route::get('payments', [PaymentController::class, 'index'])
+                ->middleware('can:payments.view')
+                ->name('payments.index');
+        });
 
-        Route::post('/locale/{target}', [LocaleController::class, 'switch'])
-            ->name('locale.switch');
+        Route::prefix('operations')->name('operations.')->group(function () {
+            Route::resource('warehouses', WarehouseController::class)
+                ->only(['index'])
+                ->middleware('can:warehouses.view');
+            Route::resource('warehouses', WarehouseController::class)
+                ->only(['create', 'store'])
+                ->middleware('can:warehouses.create');
+            Route::resource('warehouses', WarehouseController::class)
+                ->only(['edit', 'update'])
+                ->middleware('can:warehouses.update');
+            Route::resource('warehouses', WarehouseController::class)
+                ->only(['destroy'])
+                ->middleware('can:warehouses.delete');
+            Route::get('reports', [ReportController::class, 'index'])
+                ->middleware('can:reports.view')
+                ->name('reports.index');
+        });
 
-        Route::middleware(['auth', 'role:admin'])
-            ->prefix('admin')
-            ->as('admin.')
-            ->group(function () {
-                Route::get('/dashboard', function () {
-                    return view('admin.dashboard');
-                })->name('dashboard');
+        Route::prefix('security')->name('security.')->group(function () {
+            Route::get('roles', [RoleController::class, 'index'])
+                ->middleware('can:roles.view')
+                ->name('roles.index');
+            Route::get('roles/create', [RoleController::class, 'create'])
+                ->middleware('can:roles.create')
+                ->name('roles.create');
+            Route::post('roles', [RoleController::class, 'store'])
+                ->middleware('can:roles.create')
+                ->name('roles.store');
+            Route::get('roles/{role}/edit', [RoleController::class, 'edit'])
+                ->middleware('can:roles.view')
+                ->name('roles.edit');
+            Route::put('roles/{role}', [RoleController::class, 'update'])
+                ->middleware('can:roles.update')
+                ->name('roles.update');
+            Route::delete('roles/{role}', [RoleController::class, 'destroy'])
+                ->middleware('can:roles.delete')
+                ->name('roles.destroy');
+            Route::get('activity-logs', [ActivityLogController::class, 'index'])
+                ->middleware('can:activity_logs.view')
+                ->name('activity.index');
+            Route::get('users', [UserController::class, 'index'])
+                ->middleware('can:users.view')
+                ->name('users.index');
+            Route::get('users/create', [UserController::class, 'create'])
+                ->middleware('can:users.create')
+                ->name('users.create');
+            Route::post('users', [UserController::class, 'store'])
+                ->middleware('can:users.create')
+                ->name('users.store');
+            Route::get('users/{user}/edit', [UserController::class, 'edit'])
+                ->middleware('can:users.update')
+                ->name('users.edit');
+            Route::put('users/{user}', [UserController::class, 'update'])
+                ->middleware('can:users.update')
+                ->name('users.update');
+            Route::patch('users/{user}/password', [UserController::class, 'updatePassword'])
+                ->middleware('can:users.update')
+                ->name('users.password');
+            Route::get('users/{user}', [UserController::class, 'show'])
+                ->middleware('can:users.view')
+                ->name('users.show');
+        });
 
-                // Products module
-                Route::get('products', [ProductController::class, 'index'])
-                    ->name('products.index')
-                    ->middleware('permission:products.view');
+        Route::prefix('settings')->name('settings.')->group(function () {
+            Route::get('general', [SettingsController::class, 'general'])
+                ->middleware('can:settings.manage')
+                ->name('general');
+            Route::put('general', [SettingsController::class, 'updateGeneral'])
+                ->middleware('can:settings.manage')
+                ->name('general.update');
+            Route::get('appearance', [SettingsController::class, 'appearance'])
+                ->middleware('can:settings.manage')
+                ->name('appearance');
+            Route::put('appearance', [SettingsController::class, 'updateAppearance'])
+                ->middleware('can:settings.manage')
+                ->name('appearance.update');
+        });
 
-                Route::get('products/create', [ProductController::class, 'create'])
-                    ->name('products.create')
-                    ->middleware('permission:products.create');
+        Route::post('logout', function (Request $request) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
 
-                Route::post('products', [ProductController::class, 'store'])
-                    ->name('products.store')
-                    ->middleware('permission:products.create');
-
-                Route::get('products/{product}/edit', [ProductController::class, 'edit'])
-                    ->name('products.edit')
-                    ->middleware('permission:products.update');
-
-                Route::put('products/{product}', [ProductController::class, 'update'])
-                    ->name('products.update')
-                    ->middleware('permission:products.update');
-
-                Route::delete('products/{product}', [ProductController::class, 'destroy'])
-                    ->name('products.destroy')
-                    ->middleware('permission:products.delete');
-
-                // Orders module
-                Route::get('orders', [OrderController::class, 'index'])
-                    ->name('orders.index')
-                    ->middleware('permission:orders.view');
-
-                Route::get('orders/create', [OrderController::class, 'create'])
-                    ->name('orders.create')
-                    ->middleware('permission:orders.create');
-
-                Route::post('orders', [OrderController::class, 'store'])
-                    ->name('orders.store')
-                    ->middleware('permission:orders.create');
-
-                Route::get('orders/{order}', [OrderController::class, 'show'])
-                    ->name('orders.show')
-                    ->middleware('permission:orders.view');
-
-                Route::get('orders/{order}/edit', [OrderController::class, 'edit'])
-                    ->name('orders.edit')
-                    ->middleware('permission:orders.update');
-
-                Route::put('orders/{order}', [OrderController::class, 'update'])
-                    ->name('orders.update')
-                    ->middleware('permission:orders.update');
-
-                Route::post('orders/{order}/payments', [OrderController::class, 'storePayment'])
-                    ->name('orders.payments.store')
-                    ->middleware('permission:orders.update');
-
-                Route::get('orders/{order}/invoice', [OrderController::class, 'invoice'])
-                    ->name('orders.invoice')
-                    ->middleware('permission:orders.view');
-
-                Route::put('orders/{order}/status', [OrderController::class, 'updateStatus'])
-                    ->name('orders.update-status')
-                    ->middleware('permission:orders.change_status');
-
-                Route::put('orders/{order}/payment-status', [OrderController::class, 'updatePaymentStatus'])
-                    ->name('orders.update-payment-status')
-                    ->middleware('permission:orders.change_status');
-
-                // Reports module
-                Route::get('reports', [ReportController::class, 'index'])
-                    ->name('reports.index')
-                    ->middleware('permission:reports.view');
-
-                // Partners module
-                Route::get('partners', [PartnerController::class, 'index'])
-                    ->name('partners.index')
-                    ->middleware('permission:partners.view');
-                Route::get('partners/create', [PartnerController::class, 'create'])
-                    ->name('partners.create')
-                    ->middleware('permission:partners.create');
-                Route::post('partners', [PartnerController::class, 'store'])
-                    ->name('partners.store')
-                    ->middleware('permission:partners.create');
-                Route::get('partners/{partner}', [PartnerController::class, 'show'])
-                    ->name('partners.show')
-                    ->middleware('permission:partners.view');
-                Route::get('partners/{partner}/edit', [PartnerController::class, 'edit'])
-                    ->name('partners.edit')
-                    ->middleware('permission:partners.update');
-                Route::put('partners/{partner}', [PartnerController::class, 'update'])
-                    ->name('partners.update')
-                    ->middleware('permission:partners.update');
-                Route::delete('partners/{partner}', [PartnerController::class, 'destroy'])
-                    ->name('partners.destroy')
-                    ->middleware('permission:partners.delete');
-
-                // Warehouses module
-                Route::get('warehouses', [WarehouseController::class, 'index'])
-                    ->name('warehouses.index')
-                    ->middleware('permission:warehouses.view');
-                Route::get('warehouses/create', [WarehouseController::class, 'create'])
-                    ->name('warehouses.create')
-                    ->middleware('permission:warehouses.create');
-                Route::post('warehouses', [WarehouseController::class, 'store'])
-                    ->name('warehouses.store')
-                    ->middleware('permission:warehouses.create');
-                Route::get('warehouses/{warehouse}', [WarehouseController::class, 'show'])
-                    ->name('warehouses.show')
-                    ->middleware('permission:warehouses.view');
-                Route::get('warehouses/{warehouse}/edit', [WarehouseController::class, 'edit'])
-                    ->name('warehouses.edit')
-                    ->middleware('permission:warehouses.update');
-                Route::put('warehouses/{warehouse}', [WarehouseController::class, 'update'])
-                    ->name('warehouses.update')
-                    ->middleware('permission:warehouses.update');
-                Route::delete('warehouses/{warehouse}', [WarehouseController::class, 'destroy'])
-                    ->name('warehouses.destroy')
-                    ->middleware('permission:warehouses.delete');
-                Route::post('warehouses/{warehouse}/transfer', [WarehouseController::class, 'transfer'])
-                    ->name('warehouses.transfer')
-                    ->middleware('permission:warehouses.transfer');
-
-                // Employees module
-                Route::get('employees', [EmployeeController::class, 'index'])
-                    ->name('employees.index')
-                    ->middleware('permission:employees.view');
-                Route::get('employees/create', [EmployeeController::class, 'create'])
-                    ->name('employees.create')
-                    ->middleware('permission:employees.create');
-                Route::post('employees', [EmployeeController::class, 'store'])
-                    ->name('employees.store')
-                    ->middleware('permission:employees.create');
-                Route::get('employees/{employee}', [EmployeeController::class, 'show'])
-                    ->name('employees.show')
-                    ->middleware('permission:employees.view');
-                Route::get('employees/{employee}/edit', [EmployeeController::class, 'edit'])
-                    ->name('employees.edit')
-                    ->middleware('permission:employees.update');
-                Route::put('employees/{employee}', [EmployeeController::class, 'update'])
-                    ->name('employees.update')
-                    ->middleware('permission:employees.update');
-                Route::delete('employees/{employee}', [EmployeeController::class, 'destroy'])
-                    ->name('employees.destroy')
-                    ->middleware('permission:employees.delete');
-
-                // Notifications
-                Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead'])
-                    ->name('notifications.read');
-
-                Route::post('notifications/read-all', [NotificationController::class, 'markAllRead'])
-                    ->name('notifications.read-all');
-            });
+            return redirect('/' . app()->getLocale());
+        })->name('logout');
     });
+
+Route::get('/admin/{path?}', function ($path = 'dashboard') {
+    return redirect('/' . config('app.locale', 'ar') . '/admin/' . ltrim($path, '/'));
+})->where('path', '.*');

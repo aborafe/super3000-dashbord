@@ -43,9 +43,11 @@ class LowStockAlert extends Notification
                 'qty' => $this->productStock->qty,
             ]),
             'product_id' => $product?->id,
+            'product_name' => (string) ($product?->name ?? ''),
             'warehouse_id' => $warehouse?->id,
+            'warehouse_name' => (string) ($warehouse?->name ?? ''),
             'qty' => $this->productStock->qty,
-            'route' => 'admin.products.edit',
+            'route' => 'admin.catalog.products.edit',
             'route_params' => [
                 'product' => $product?->id,
             ],

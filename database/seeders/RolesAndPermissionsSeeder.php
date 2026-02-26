@@ -29,28 +29,44 @@ class RolesAndPermissionsSeeder extends Seeder
             'products.update',
             'products.delete',
 
+            'categories.view',
+            'categories.create',
+            'categories.update',
+            'categories.delete',
+
+            'customers.view',
+            'customers.create',
+            'customers.update',
+            'customers.delete',
+
             'orders.view',
-            'orders.create',
             'orders.update',
-            'orders.delete',
             'orders.change_status',
+
+            'notifications.view',
+            'notifications.send',
+
+            'payments.view',
+            'payments.create',
+
+            'inventory.view',
+            'inventory.create',
 
             'warehouses.view',
             'warehouses.create',
             'warehouses.update',
             'warehouses.delete',
-            'warehouses.manage_stock',
-            'warehouses.transfer',
 
-            'partners.view',
-            'partners.create',
-            'partners.update',
-            'partners.delete',
+            'users.view',
+            'users.create',
+            'users.update',
 
-            'employees.view',
-            'employees.create',
-            'employees.update',
-            'employees.delete',
+            'roles.view',
+            'roles.create',
+            'roles.update',
+            'roles.delete',
+
+            'activity_logs.view',
 
             'reports.view',
             'settings.manage',
@@ -69,17 +85,24 @@ class RolesAndPermissionsSeeder extends Seeder
             'manager' => [
                 'dashboard.view',
                 'products.view', 'products.create', 'products.update',
-                'orders.view', 'orders.create', 'orders.update', 'orders.change_status',
-                'warehouses.view', 'warehouses.manage_stock', 'warehouses.transfer',
-                'partners.view', 'partners.create', 'partners.update',
-                'employees.view',
+                'categories.view', 'categories.create', 'categories.update',
+                'customers.view', 'customers.create', 'customers.update',
+                'orders.view', 'orders.update', 'orders.change_status',
+                'notifications.view', 'notifications.send',
+                'payments.view', 'payments.create',
+                'inventory.view', 'inventory.create',
+                'warehouses.view', 'warehouses.create', 'warehouses.update',
                 'reports.view',
+                'activity_logs.view',
             ],
             'staff' => [
                 'dashboard.view',
                 'products.view',
-                'orders.view', 'orders.create',
-                'partners.view',
+                'categories.view',
+                'customers.view',
+                'orders.view',
+                'notifications.view',
+                'payments.view',
             ],
         ];
 

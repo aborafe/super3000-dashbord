@@ -3,184 +3,299 @@
 @section('title', __('Products'))
 
 @section('content')
-    @include('admin.components.flash')
-
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-        <div>
-            <h4 class="mb-1">{{ __('Products') }}</h4>
-            <p class="text-muted mb-0">{{ __('Manage your product catalog.') }}</p>
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="fw-bold py-3 mb-0">{{ __('Products') }}</h4>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb breadcrumb-style1 mb-0">
+                        <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">{{ __('Dashboard') }}</a></li>
+                        <li class="breadcrumb-item active">{{ __('Products') }}</li>
+                    </ol>
+                </nav>
+            </div>
         </div>
 
-        @can('products.create')
-            <a href="{{ route('admin.products.create') }}" class="btn btn-primary">
-                <i class="bx bx-plus me-1"></i>{{ __('Add product') }}
-            </a>
-        @endcan
-    </div>
+        @if (session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
 
-    <div class="card mb-4">
-        <h5 class="card-header">{{ __('Filters') }}</h5>
-        <div class="card-body">
-            <form method="GET" action="{{ route('admin.products.index') }}">
-                <div class="row g-3 align-items-end">
-                    <div class="col-12 col-md-3">
-                        <label class="form-label">{{ __('Search') }}</label>
-                        <input type="text" name="q" value="{{ $filters['q'] ?? '' }}"
-                            class="form-control" placeholder="{{ __('Name or SKU') }}">
+        <div class="row g-4 mb-4">
+            <div class="col-md-6 col-xl-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start justify-content-between">
+                            <div>
+                                <p class="mb-1">{{ __('In-store Sales') }}</p>
+                                <h4 class="card-title mb-3">{{ money($stats['cashSales'], 2) }}</h4>
+                                <small class="text-success fw-medium"><i class="icon-base bx bx-up-arrow-alt"></i>
+                                    +5.7%</small>
+                            </div>
+                            <span class="badge bg-label-primary p-2">
+                                <i class="icon-base bx bx-store-alt"></i>
+                            </span>
+                        </div>
                     </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start justify-content-between">
+                            <div>
+                                <p class="mb-1">{{ __('Website Sales') }}</p>
+                                <h4 class="card-title mb-3">{{ money($stats['websiteSales'], 2) }}</h4>
+                                <small class="text-success fw-medium"><i class="icon-base bx bx-up-arrow-alt"></i>
+                                    +12.4%</small>
+                            </div>
+                            <span class="badge bg-label-info p-2">
+                                <i class="icon-base bx bx-globe"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start justify-content-between">
+                            <div>
+                                <p class="mb-1">{{ __('Discount') }}</p>
+                                <h4 class="card-title mb-3">{{ money($stats['discountTotal'], 2) }}</h4>
+                                <small class="text-danger fw-medium"><i class="icon-base bx bx-down-arrow-alt"></i>
+                                    -3.5%</small>
+                            </div>
+                            <span class="badge bg-label-warning p-2">
+                                <i class="icon-base bx bx-purchase-tag"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-xl-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start justify-content-between">
+                            <div>
+                                <p class="mb-1">{{ __('Affiliate') }}</p>
+                                <h4 class="card-title mb-3">{{ number_format($stats['affiliateCustomers']) }}</h4>
+                                <small class="text-success fw-medium"><i class="icon-base bx bx-up-arrow-alt"></i>
+                                    +8.1%</small>
+                            </div>
+                            <span class="badge bg-label-success p-2">
+                                <i class="icon-base bx bx-user-plus"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                    <div class="col-12 col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title mb-4">{{ __('Filter') }}</h5>
+                <form method="GET" id="products-filter-form" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">{{ __('Status') }}</label>
+                        <select name="status" class="form-select">
+                            <option value="">{{ __('All') }}</option>
+                            <option value="active" @selected($status === 'active')>{{ __('Active') }}</option>
+                            <option value="inactive" @selected($status === 'inactive')>{{ __('Inactive') }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
                         <label class="form-label">{{ __('Category') }}</label>
                         <select name="category_id" class="form-select">
-                            <option value="">{{ __('All categories') }}</option>
+                            <option value="">{{ __('All Categories') }}</option>
                             @foreach ($categories as $category)
-                                <option value="{{ $category->id }}" @selected(($filters['category_id'] ?? null) == $category->id)>
-                                    {{ app()->getLocale() === 'ar' ? $category->name_ar : $category->name_en }}
+                                <option value="{{ $category->id }}" @selected($categoryId == $category->id)>{{ $category->name }}
                                 </option>
                             @endforeach
                         </select>
                     </div>
-
-                    <div class="col-12 col-md-2">
-                        <label class="form-label">{{ __('Status') }}</label>
-                        <select name="status" class="form-select">
+                    <div class="col-md-4">
+                        <label class="form-label">{{ __('Stock') }}</label>
+                        <select name="stock" class="form-select">
                             <option value="">{{ __('All') }}</option>
-                            <option value="active" @selected(($filters['status'] ?? null) === 'active')>
-                                {{ __('Active') }}
-                            </option>
-                            <option value="inactive" @selected(($filters['status'] ?? null) === 'inactive')>
-                                {{ __('Inactive') }}
-                            </option>
+                            <option value="in" @selected($stock === 'in')>{{ __('In') }}</option>
+                            <option value="low" @selected($stock === 'low')>{{ __('Low') }}</option>
+                            <option value="out" @selected($stock === 'out')>{{ __('Out') }}</option>
                         </select>
                     </div>
-
-                    <div class="col-12 col-md-3">
-                        <label class="form-label">{{ __('Sort by') }}</label>
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <select name="sort" class="form-select">
-                                    <option value="created_at" @selected(($filters['sort'] ?? null) === 'created_at')>
-                                        {{ __('Created') }}
-                                    </option>
-                                    <option value="name" @selected(($filters['sort'] ?? null) === 'name')>
-                                        {{ __('Name') }}
-                                    </option>
-                                    <option value="price" @selected(($filters['sort'] ?? null) === 'price')>
-                                        {{ __('Price') }}
-                                    </option>
-                                    <option value="stock" @selected(($filters['sort'] ?? null) === 'stock')>
-                                        {{ __('Stock') }}
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="col-6">
-                                <select name="direction" class="form-select">
-                                    <option value="desc" @selected(($filters['direction'] ?? null) === 'desc')>
-                                        {{ __('Desc') }}
-                                    </option>
-                                    <option value="asc" @selected(($filters['direction'] ?? null) === 'asc')>
-                                        {{ __('Asc') }}
-                                    </option>
-                                </select>
+                    <div class="col-12 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm">{{ __('Filter') }}</button>
+                        <a href="{{ route('admin.products.index') }}"
+                            class="btn btn-outline-secondary btn-sm">{{ __('Reset') }}</a>
+                    </div>
+                </form>
+            </div>
+            <div class="card-body border-top">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <input id="products-search" type="text" name="q" value="{{ $search }}"
+                            form="products-filter-form" class="form-control form-control-sm"
+                            placeholder="{{ __('Search Product') }}" aria-label="{{ __('Search Product') }}" />
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <select name="per_page" class="form-select form-select-sm w-auto" form="products-filter-form">
+                            <option value="10" @selected($perPage === 10)>10</option>
+                            <option value="25" @selected($perPage === 25)>25</option>
+                            <option value="50" @selected($perPage === 50)>50</option>
+                        </select>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                                data-bs-toggle="dropdown">
+                                <i class="icon-base bx bx-export me-1"></i>{{ __('Export') }}
+                            </button>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" data-no-loader="1"
+                                    href="{{ route('admin.products.export', array_merge(['locale' => app()->getLocale(), 'format' => 'csv'], request()->query())) }}">
+                                    {{ __('CSV') }}
+                                </a>
+                                <a class="dropdown-item" data-no-loader="1"
+                                    href="{{ route('admin.products.export', array_merge(['locale' => app()->getLocale(), 'format' => 'excel'], request()->query())) }}">
+                                    {{ __('Excel') }}
+                                </a>
+                                <a class="dropdown-item" target="_blank" data-no-loader="1"
+                                    href="{{ route('admin.products.export', array_merge(['locale' => app()->getLocale(), 'format' => 'pdf'], request()->query())) }}">
+                                    {{ __('PDF') }}
+                                </a>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="col-12 col-md-1 d-grid">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bx bx-filter me-1"></i>{{ __('Filter') }}
-                        </button>
+                        <a href="{{ route('admin.products.create', ['locale' => app()->getLocale()]) }}"
+                            class="btn btn-primary btn-sm">+
+                            {{ __('Add Product') }}</a>
                     </div>
                 </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header d-flex align-items-center justify-content-between">
-            <h5 class="mb-0">{{ __('Products') }}</h5>
-            <span class="text-muted small">{{ __('Total: :count', ['count' => $products->total()]) }}</span>
-        </div>
-        <div class="table-responsive text-nowrap">
-            <table class="table">
-                <thead class="table-light">
-                    <tr>
-                        <th>{{ __('Image') }}</th>
-                        <th>{{ __('SKU') }}</th>
-                        <th>{{ __('Name') }}</th>
-                        <th>{{ __('Category') }}</th>
-                        <th>{{ __('Price') }}</th>
-                        <th>{{ __('Stock') }}</th>
-                        <th>{{ __('Status') }}</th>
-                        <th class="text-end">{{ __('Actions') }}</th>
-                    </tr>
-                </thead>
-                <tbody class="table-border-bottom-0">
-                    @forelse ($products as $product)
+            </div>
+            <div class="table-responsive text-nowrap">
+                <table class="table table-hover">
+                    <thead>
                         <tr>
-                            <td>
-                                @if ($product->image)
-                                    <div class="avatar avatar-sm">
-                                        <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}"
-                                            class="rounded">
+                            <th class="w-px-10">
+                                <input id="products-select-all" class="form-check-input" type="checkbox"
+                                    name="select_all_products" />
+                            </th>
+                            <th>{{ __('Product') }}</th>
+                            <th>{{ __('Category') }}</th>
+                            {{-- <th>{{ __(                            php artisan migrate) }}</th> --}}
+                            <th>{{ __('SKU') }}</th>
+                            <th>{{ __('Price') }}</th>
+                            <th>{{ __('Qty') }}</th>
+                            <th>{{ __('Status') }}</th>
+                            <th>{{ __('Actions') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($products as $product)
+                            <tr>
+                                <td>
+                                    <input id="product-select-{{ $product->id }}" class="form-check-input"
+                                        type="checkbox" name="selected_products[]" value="{{ $product->id }}" />
+                                </td>
+                                <td>
+                                    <div class="d-flex justify-content-start align-items-center">
+                                        <div class="avatar me-2">
+                                            <img src="{{ asset('sneat-assets') }}/img/elements/1.png"
+                                                alt="{{ __('Product') }}" class="rounded" />
+                                        </div>
+                                        <div class="d-flex flex-column">
+                                            <a href="{{ route('admin.products.edit', ['locale' => app()->getLocale(), 'product' => $product->id]) }}"
+                                                class="fw-medium text-body">{{ $product->name }}</a>
+                                            @if ($product->category)
+                                                <a href="{{ route('admin.catalog.categories.edit', $product->category) }}"
+                                                    class="small text-muted">{{ $product->category->name }}</a>
+                                            @else
+                                                <small class="text-muted">{{ __('Category') }}</small>
+                                            @endif
+                                        </div>
                                     </div>
-                                @else
-                                    <span class="text-muted small">{{ __('N/A') }}</span>
-                                @endif
-                            </td>
-                            <td class="text-muted text-uppercase small">{{ $product->sku }}</td>
-                            <td>{{ $product->name }}</td>
-                            <td class="text-muted">
-                                @if ($product->category)
-                                    {{ app()->getLocale() === 'ar' ? $product->category->name_ar : $product->category->name_en }}
-                                @else
-                                    —
-                                @endif
-                            </td>
-                            <td>{{ number_format($product->price, 2) }}</td>
-                            <td>{{ $product->stock }}</td>
-                            <td>
-                                @if ($product->status === 'active')
-                                    <span class="badge bg-label-success">{{ __('Active') }}</span>
-                                @else
-                                    <span class="badge bg-label-secondary">{{ __('Inactive') }}</span>
-                                @endif
-                            </td>
-                            <td class="text-end">
-                                <div class="d-inline-flex align-items-center gap-1">
-                                    @can('products.update')
-                                        <a href="{{ route('admin.products.edit', $product) }}"
-                                            class="btn btn-sm btn-icon btn-outline-primary">
-                                            <i class="bx bx-edit-alt"></i>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="avatar-initial rounded-circle bg-label-primary me-2">
+                                            <i class="icon-base bx bx-tag"></i>
+                                        </span>
+                                        @if ($product->category)
+                                            <a href="{{ route('admin.catalog.categories.edit', $product->category) }}"
+                                                class="text-body">{{ $product->category->name }}</a>
+                                        @else
+                                            <span>{{ __('Category') }}</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                {{-- <td>
+                                    <div class="form-check form-switch">
+                                        <input id="product-stock-{{ $product->id }}" class="form-check-input"
+                                            type="checkbox" name="stock_visible_{{ $product->id }}"
+                                            {{ $product->stock_qty > 0 ? 'checked' : '' }} disabled />
+                                    </div>
+                                </td> --}}
+                                <td>
+                                    <a href="{{ route('admin.products.edit', ['locale' => app()->getLocale(), 'product' => $product->id]) }}"
+                                        class="text-body">{{ $product->sku }}</a>
+                                </td>
+                                <td>{{ money($product->price, 2) }}</td>
+                                <td>{{ $product->stock_qty }}</td>
+                                <td>
+                                    <form method="POST"
+                                        action="{{ route('admin.products.toggle', ['locale' => app()->getLocale(), 'product' => $product->id]) }}">
+                                        @csrf
+                                        @method('PATCH')
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" name="is_active"
+                                                {{ $product->is_active ? 'checked' : '' }} onchange="this.form.submit()">
+                                        </div>
+                                    </form>
+                                </td>
+                                <td>
+                                    <div class="d-inline-flex align-items-center gap-1">
+                                        <a href="{{ route('admin.products.edit', ['locale' => app()->getLocale(), 'product' => $product->id]) }}"
+                                            class="btn btn-sm btn-icon btn-outline-secondary">
+                                            <i class="icon-base bx bx-edit-alt"></i>
                                         </a>
-                                    @endcan
-
-                                    @can('products.delete')
-                                        <form method="POST" action="{{ route('admin.products.destroy', $product) }}"
-                                            onsubmit="return confirm('{{ __('Are you sure?') }}')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-icon btn-outline-danger">
-                                                <i class="bx bx-trash"></i>
+                                        <div class="dropdown">
+                                            <button type="button"
+                                                class="btn btn-sm btn-icon btn-outline-secondary dropdown-toggle hide-arrow"
+                                                data-bs-toggle="dropdown">
+                                                <i class="icon-base bx bx-dots-vertical-rounded"></i>
                                             </button>
-                                        </form>
-                                    @endcan
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
-                                {{ __('No products found.') }}
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-
-        <div class="card-footer">
-            {{ $products->links('pagination::bootstrap-5') }}
+                                            <div class="dropdown-menu">
+                                                <a class="dropdown-item"
+                                                    href="{{ route('admin.products.edit', ['locale' => app()->getLocale(), 'product' => $product->id]) }}">
+                                                    <i class="icon-base bx bx-edit-alt me-1"></i> {{ __('Edit') }}
+                                                </a>
+                                                <form
+                                                    action="{{ route('admin.products.destroy', ['locale' => app()->getLocale(), 'product' => $product->id]) }}"
+                                                    method="POST">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="dropdown-item">
+                                                        <i class="icon-base bx bx-trash me-1"></i> {{ __('Delete') }}
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="9" class="text-center text-muted">{{ __('No products found.') }}</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer d-flex flex-wrap justify-content-between align-items-center">
+                <small class="text-muted">
+                    {{ __('Showing') }} {{ $products->firstItem() ?? 0 }} {{ __('to') }}
+                    {{ $products->lastItem() ?? 0 }}
+                    {{ __('of') }} {{ $products->total() }} {{ __('results') }}
+                </small>
+                {{ $products->links('pagination::bootstrap-5') }}
+            </div>
         </div>
     </div>
 @endsection
+

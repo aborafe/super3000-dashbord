@@ -24,8 +24,19 @@ class PermissionsTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('staff');
 
-        $response = $this->actingAs($user)->get(route('admin.products.create', ['locale' => 'en']));
+        $response = $this->actingAs($user)->get(route('admin.catalog.products.create', ['locale' => 'en']));
 
-        $response->assertStatus(403);
+        $response->assertForbidden();
+    }
+
+    public function test_staff_can_access_products_index(): void
+    {
+        /** @var \App\Models\User $user */
+        $user = User::factory()->create();
+        $user->assignRole('staff');
+
+        $response = $this->actingAs($user)->get(route('admin.catalog.products.index', ['locale' => 'en']));
+
+        $response->assertOk();
     }
 }

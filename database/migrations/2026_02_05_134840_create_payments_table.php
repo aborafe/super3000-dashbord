@@ -15,11 +15,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('order_id')->constrained()->cascadeOnDelete();
             $table->decimal('amount', 15, 2);
-            $table->string('method')->default('cash');
+            $table->enum('method', ['cash', 'card', 'transfer'])->default('cash');
+            $table->enum('status', ['paid', 'failed', 'pending'])->default('pending');
             $table->timestamp('paid_at')->nullable();
             $table->timestamps();
 
-            $table->index(['order_id', 'paid_at']);
+            $table->index(['order_id', 'status', 'paid_at']);
         });
     }
 

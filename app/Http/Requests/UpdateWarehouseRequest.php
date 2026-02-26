@@ -8,7 +8,7 @@ class UpdateWarehouseRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('warehouses.update') ?? false;
+        return (bool) $this->user()?->can('warehouses.update');
     }
 
     public function rules(): array
@@ -16,6 +16,7 @@ class UpdateWarehouseRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'location' => ['nullable', 'string', 'max:255'],
+            'is_active' => ['required', 'boolean'],
         ];
     }
 }

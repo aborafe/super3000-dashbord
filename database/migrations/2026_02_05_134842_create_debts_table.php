@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('debts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('partner_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('customer_id')->constrained()->cascadeOnDelete();
             $table->decimal('amount', 15, 2);
             $table->date('due_date')->nullable();
             $table->enum('status', ['open', 'paid', 'overdue'])->default('open');
             $table->timestamps();
 
-            $table->index(['partner_id', 'status']);
+            $table->index(['customer_id', 'status']);
         });
     }
 

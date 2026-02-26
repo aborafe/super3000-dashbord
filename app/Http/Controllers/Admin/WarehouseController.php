@@ -3,167 +3,99 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreStockTransferRequest;
 use App\Http\Requests\StoreWarehouseRequest;
 use App\Http\Requests\UpdateWarehouseRequest;
-use App\Models\Product;
-use App\Models\ProductStock;
-use App\Models\StockMovement;
+use App\Models\InventoryMovement;
 use App\Models\Warehouse;
-use Illuminate\Contracts\View\View;
+use App\Support\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class WarehouseController extends Controller
 {
-    public function index(Request $request): View
+    public function index(): View
     {
         $warehouses = Warehouse::query()
-            ->withCount('stocks')
             ->orderBy('name')
-            ->paginate(15);
+            ->paginate(10)
+            ->withQueryString();
 
-        return view('admin.warehouses.index', [
-            'warehouses' => $warehouses,
-        ]);
+        $tableStats = [
+            [
+                'value' => number_format(Warehouse::query()->count()),
+                'label' => __('Total Warehouses'),
+                'icon' => 'bx-buildings',
+            ],
+            [
+                'value' => number_format(Warehouse::query()->where('is_active', true)->count()),
+                'label' => __('Active Warehouses'),
+                'icon' => 'bx-check-shield',
+            ],
+            [
+                'value' => number_format(InventoryMovement::query()->count()),
+                'label' => __('Inventory Movements'),
+                'icon' => 'bx-transfer',
+            ],
+            [
+                'value' => number_format((int) Warehouse::query()->distinct()->count('location')),
+                'label' => __('Locations'),
+                'icon' => 'bx-map-pin',
+            ],
+        ];
+
+        return view('admin.operations.warehouses.index', compact('warehouses', 'tableStats'));
     }
 
     public function create(): View
     {
-        return view('admin.warehouses.create');
+        return view('admin.operations.warehouses.create');
     }
 
     public function store(StoreWarehouseRequest $request): RedirectResponse
     {
-        Warehouse::query()->create($request->validated());
+        $data = $request->validated();
+        $data['is_active'] = (bool) $data['is_active'];
+
+        $warehouse = Warehouse::query()->create($data);
+
+        ActivityLogger::log('created', 'warehouse', $warehouse->id, [
+            'name' => (string) ($warehouse->getAttribute('name') ?? ''),
+        ]);
 
         return redirect()
-            ->route('admin.warehouses.index')
-            ->with('status', __('Warehouse created successfully.'));
-    }
-
-    public function show(Warehouse $warehouse): View
-    {
-        $stocks = ProductStock::query()
-            ->with('product')
-            ->where('warehouse_id', $warehouse->id)
-            ->orderBy('qty')
-            ->get();
-
-        $products = Product::query()
-            ->orderBy('name_ar')
-            ->get();
-
-        $targetWarehouses = Warehouse::query()
-            ->where('id', '!=', $warehouse->id)
-            ->orderBy('name')
-            ->get();
-
-        return view('admin.warehouses.show', [
-            'warehouse' => $warehouse,
-            'stocks' => $stocks,
-            'products' => $products,
-            'targetWarehouses' => $targetWarehouses,
-        ]);
+            ->route('admin.operations.warehouses.index')
+            ->with('success', __('Warehouse created successfully.'));
     }
 
     public function edit(Warehouse $warehouse): View
     {
-        return view('admin.warehouses.edit', [
-            'warehouse' => $warehouse,
-        ]);
+        return view('admin.operations.warehouses.edit', compact('warehouse'));
     }
 
     public function update(UpdateWarehouseRequest $request, Warehouse $warehouse): RedirectResponse
     {
-        $warehouse->update($request->validated());
+        $data = $request->validated();
+        $data['is_active'] = (bool) $data['is_active'];
+
+        $warehouse->update($data);
+
+        ActivityLogger::log('updated', 'warehouse', $warehouse->id, [
+            'name' => (string) ($warehouse->getAttribute('name') ?? ''),
+        ]);
 
         return redirect()
-            ->route('admin.warehouses.index')
-            ->with('status', __('Warehouse updated successfully.'));
+            ->route('admin.operations.warehouses.index')
+            ->with('success', __('Warehouse updated successfully.'));
     }
 
     public function destroy(Warehouse $warehouse): RedirectResponse
     {
         $warehouse->delete();
 
+        ActivityLogger::log('deleted', 'warehouse', $warehouse->id);
+
         return redirect()
-            ->route('admin.warehouses.index')
-            ->with('status', __('Warehouse deleted successfully.'));
-    }
-
-    public function transfer(StoreStockTransferRequest $request, Warehouse $warehouse): RedirectResponse
-    {
-        $validated = $request->validated();
-
-        if ((int) $validated['from_warehouse_id'] !== $warehouse->id) {
-            return back()->withErrors(['from_warehouse_id' => __('Invalid source warehouse.')]);
-        }
-
-        $qty = (int) $validated['qty'];
-        $productId = (int) $validated['product_id'];
-        $toWarehouseId = (int) $validated['to_warehouse_id'];
-
-        $fromWarehouse = $warehouse;
-        $toWarehouse = Warehouse::query()->findOrFail($toWarehouseId);
-        $reason = $validated['reason'] ?? null;
-
-        $fromStock = ProductStock::query()->firstOrCreate(
-            ['product_id' => $productId, 'warehouse_id' => $fromWarehouse->id],
-            ['qty' => 0],
-        );
-
-        if ($fromStock->qty < $qty) {
-            return back()->withErrors(['qty' => __('Insufficient stock in source warehouse.')]);
-        }
-
-        DB::transaction(function () use (
-            $fromWarehouse,
-            $toWarehouse,
-            $productId,
-            $qty,
-            $reason,
-            $fromStock
-        ): void {
-            $fromStock->qty = $fromStock->qty - $qty;
-            $fromStock->save();
-
-            $toStock = ProductStock::query()->firstOrCreate(
-                ['product_id' => $productId, 'warehouse_id' => $toWarehouse->id],
-                ['qty' => 0],
-            );
-            $toStock->qty = $toStock->qty + $qty;
-            $toStock->save();
-
-            $outReason = trim(sprintf(
-                'Transfer to %s%s',
-                $toWarehouse->name,
-                $reason ? ' - ' . $reason : ''
-            ));
-            $inReason = trim(sprintf(
-                'Transfer from %s%s',
-                $fromWarehouse->name,
-                $reason ? ' - ' . $reason : ''
-            ));
-
-            StockMovement::query()->create([
-                'product_id' => $productId,
-                'warehouse_id' => $fromWarehouse->id,
-                'direction' => 'out',
-                'qty' => $qty,
-                'reason' => $outReason,
-            ]);
-
-            StockMovement::query()->create([
-                'product_id' => $productId,
-                'warehouse_id' => $toWarehouse->id,
-                'direction' => 'in',
-                'qty' => $qty,
-                'reason' => $inReason,
-            ]);
-        });
-
-        return back()->with('status', __('Stock transferred successfully.'));
+            ->route('admin.operations.warehouses.index')
+            ->with('success', __('Warehouse deleted successfully.'));
     }
 }

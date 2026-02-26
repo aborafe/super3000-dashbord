@@ -1,0 +1,89 @@
+BASE_URL = http://192.168.1.10:8000/api/v1
+
+General Requirements:
+- Include header `Accept: application/json`.
+- POST/PUT/PATCH requests send JSON body.
+- Authentication using Laravel Sanctum Bearer token for protected routes.
+
+Authentication Endpoints:
+1. POST /auth/login
+   - Description: Obtain API token using email and password (phone number is used as password).
+   - Required fields:
+     * email (string, email) or phone or identifier
+     * password (string, min 6)
+     * device_name (string, optional)
+   - Response: { token, access_token, user }.
+
+2. POST /auth/register
+   - Description: Register a new user (disabled in production).
+   - Required fields:
+     * name (string)
+     * email (string, email, unique)
+     * password (string, confirmed)
+     * password_confirmation (string)
+     * device_name (string, optional)
+   - Response: 201 Created with token and user.
+
+3. POST /auth/logout
+   - Description: Revoke current access token.
+   - Protected: yes.
+   - Response: success message.
+
+4. GET /me
+   - Description: Retrieve authenticated user info.
+   - Protected: yes.
+   - Response: user resource.
+
+Category Endpoints:
+1. GET /categories
+   - Description: List all active categories sorted by name.
+   - Protected: yes.
+   - Response: array of categories.
+
+Product Endpoints:
+1. GET /products
+   - Description: Paginated list of active products. Supports search and filtering.
+   - Protected: yes.
+   - Query parameters:
+     * per_page (int 1-100, default 20)
+     * category_id (int)
+     * q (string search on name or sku)
+   - Response: { data: [...], meta: pagination }
+
+2. GET /products/{id}
+   - Description: Show details of a single product.
+   - Protected: yes.
+   - Response: product resource.
+
+Order Endpoints:
+1. GET /orders
+   - Description: List orders of authenticated user (paginated).
+   - Protected: yes.
+   - Query parameters:
+     * per_page (int 1-100, default 20)
+   - Response: { data: [...], meta: pagination }
+
+2. GET /orders/{id}
+   - Description: Retrieve specific order if it belongs to the user.
+   - Protected: yes.
+   - Response: order resource.
+
+3. POST /orders
+   - Description: Create a new order. Validates item availability and deducts stock.
+   - Protected: yes.
+   - Body structure:
+     {
+       "items": [{"productId":123,"quantity":2}, ...],
+       "checkout": {"shippingAddress":"...","notes":"..."}
+     }
+   - Response: 201 with order data, or 409 conflict if stock insufficient.
+
+Miscellaneous:
+- GET /hello (no auth) returns test JSON message.
+
+Usage Notes:
+- Use `Authorization: Bearer <token>` header for protected calls.
+- Errors use standard JSON with message and status code.
+- Pagination meta fields: current_page, per_page, total, last_page etc.
+
+This document summarizes every API method, required parameters, URLs and purpose.
